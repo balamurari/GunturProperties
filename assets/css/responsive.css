@@ -1,0 +1,192 @@
+/* 
+* Guntur Properties - Responsive Stylesheet
+* Version: 1.0
+*/
+
+/* Large Devices (desktops, less than 1200px) */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 960px;
+    }
+    
+    .services-grid,
+    .benefits-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+    }
+}
+
+/* Medium Devices (tablets, less than 992px) */
+@media (max-width: 992px) {
+    .container {
+        max-width: 720px;
+    }
+    
+    .hero-content {
+        flex-direction: column;
+    }
+    
+    .hero-text {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    
+    .hero-btns,
+    .hero-stats,
+    .find-home-callout {
+        justify-content: center;
+    }
+    
+    .find-home-callout {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    nav {
+        display: none;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+    }
+    
+    .search-filters {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .view-all {
+        justify-content: center;
+    }
+    
+    .footer-company {
+        flex: 100%;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .footer-links {
+        flex: 100%;
+    }
+}
+
+/* Small Devices (landscape phones, less than 768px) */
+@media (max-width: 768px) {
+    .container {
+        max-width: 540px;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    h2 {
+        font-size: 1.7rem;
+    }
+    
+    .hero-stats {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .footer-links {
+        flex-direction: column;
+        gap: 30px;
+    }
+    
+    .footer-column {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .copyright {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .services-grid,
+    .benefits-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Extra Small Devices (portrait phones, less than 576px) */
+@media (max-width: 576px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    header .container {
+        padding: 0 20px;
+    }
+    
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    .hero-section {
+        padding: 60px 0 30px;
+    }
+    
+    .hero-btns {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .hero-btns .btn {
+        width: 100%;
+    }
+    
+    .search-input {
+        flex-direction: column;
+    }
+    
+    .search-input input {
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .search-btn {
+        border-radius: 5px;
+        width: 100%;
+        padding: 15px;
+    }
+    
+    .why-choose-us {
+        padding: 60px 0;
+    }
+    
+    .benefit-card {
+        padding: 20px 15px;
+    }
+    
+    .footer-search {
+        flex-direction: column;
+    }
+    
+    .footer-search input {
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .footer-search button {
+        border-radius: 5px;
+        width: 100%;
+        padding: 12px 15px;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+}
