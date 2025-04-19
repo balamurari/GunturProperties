@@ -1,18 +1,30 @@
 /* 
 * Guntur Properties - Responsive Stylesheet
-* Version: 1.0
+* Version: 1.1
 */
 
 /* Large Devices (desktops, less than 1200px) */
 @media (max-width: 1200px) {
     .container {
         max-width: 960px;
+        width: 100%;
+        padding-left: 15px;
+        padding-right: 15px;
     }
     
     .services-grid,
     .benefits-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 30px;
+    }
+    
+    .hero-image img {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    .grid-container {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -29,12 +41,23 @@
     .hero-text {
         text-align: center;
         margin-bottom: 40px;
+        width: 100%;
+    }
+    
+    .hero-image {
+        width: 100%;
     }
     
     .hero-btns,
     .hero-stats,
     .find-home-callout {
         justify-content: center;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    
+    .hero-btns {
+        gap: 15px;
     }
     
     .find-home-callout {
@@ -42,12 +65,13 @@
         margin: 0 auto;
     }
     
+    /* Fix for nav hiding on tablets */
     nav {
-        display: none;
+        display: none !important; /* Use !important to override any inline styles */
     }
     
     .mobile-menu-toggle {
-        display: block;
+        display: block !important;
     }
     
     .search-filters {
@@ -73,12 +97,37 @@
     .footer-links {
         flex: 100%;
     }
+    
+    /* Team and agents grids */
+    .team-grid,
+    .agents-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    /* Join team section */
+    .join-team-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .about-grid,
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .about-image, 
+    .join-team-image {
+        order: -1;
+        margin-bottom: 30px;
+    }
 }
 
 /* Small Devices (landscape phones, less than 768px) */
 @media (max-width: 768px) {
     .container {
-        max-width: 540px;
+        max-width: 100%;
+        padding-left: 20px;
+        padding-right: 20px;
     }
     
     h1 {
@@ -92,6 +141,7 @@
     .hero-stats {
         flex-direction: column;
         gap: 20px;
+        align-items: center;
     }
     
     .footer-links {
@@ -116,8 +166,33 @@
     }
     
     .services-grid,
-    .benefits-grid {
+    .benefits-grid,
+    .team-grid,
+    .agents-grid,
+    .grid-container,
+    .values-grid {
         grid-template-columns: 1fr;
+    }
+    
+    /* Fix for the main menu toggle on mobile */
+    .mobile-menu-toggle {
+        padding: 10px;
+        font-size: 22px;
+    }
+    
+    /* Property cards in grid view */
+    .property-card {
+        max-width: 100%;
+    }
+    
+    /* Fix contact form on mobile */
+    .contact-form-container {
+        padding: 20px 15px;
+    }
+    
+    /* Fix map container height */
+    .map-container {
+        height: 300px;
     }
 }
 
@@ -128,7 +203,7 @@
     }
     
     header .container {
-        padding: 0 20px;
+        padding: 0 15px;
     }
     
     h1 {
@@ -136,7 +211,7 @@
     }
     
     .hero-section {
-        padding: 60px 0 30px;
+        padding: 40px 0 30px;
     }
     
     .hero-btns {
@@ -146,6 +221,7 @@
     
     .hero-btns .btn {
         width: 100%;
+        margin-right: 0;
     }
     
     .search-input {
@@ -155,6 +231,7 @@
     .search-input input {
         border-radius: 5px;
         margin-bottom: 10px;
+        width: 100%;
     }
     
     .search-btn {
@@ -164,7 +241,7 @@
     }
     
     .why-choose-us {
-        padding: 60px 0;
+        padding: 40px 0;
     }
     
     .benefit-card {
@@ -178,6 +255,7 @@
     .footer-search input {
         border-radius: 5px;
         margin-bottom: 10px;
+        width: 100%;
     }
     
     .footer-search button {
@@ -188,5 +266,68 @@
     
     .social-links {
         justify-content: center;
+    }
+    
+    /* Fix space between elements */
+    .section-header {
+        margin-bottom: 30px;
+    }
+    
+    /* Adjust padding for all sections */
+    .featured-properties,
+    .services-section,
+    .search-section,
+    .about-content,
+    .mission-values,
+    .team-section,
+    .testimonials-section,
+    .agents-section,
+    .join-team-section,
+    .properties-grid,
+    .contact-section {
+        padding: 40px 0;
+    }
+    
+    /* Fix spacing for property slide images */
+    .property-images {
+        height: 200px;
+    }
+    
+    /* Adjust the hero animations for mobile */
+    .sparkle-star-large {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .sparkle-star-medium {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .sparkle-star-small {
+        width: 12px;
+        height: 12px;
+    }
+    
+    /* Ensure the mobile menu is properly layered */
+    .mobile-nav {
+        width: 250px; /* Slightly narrower on very small screens */
+        z-index: 9999;
+    }
+}
+
+/* Fix for the mobile nav animation */
+.mobile-nav.active {
+    right: 0 !important; /* Ensure this overrides any other styles */
+}
+
+/* Fix for the mobile menu on all screen sizes */
+@media (min-width: 993px) {
+    nav {
+        display: flex !important; /* Show on desktop */
+    }
+    
+    .mobile-menu-toggle {
+        display: none !important; /* Hide on desktop */
     }
 }
