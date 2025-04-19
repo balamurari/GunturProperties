@@ -578,4 +578,3 @@ window.resetCountAnimation = function() {
     });
     setTimeout(startCounting, 500);
 };
-
