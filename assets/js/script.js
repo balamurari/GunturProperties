@@ -3,6 +3,24 @@
  * Version: 1.3
  */
 
+//this is realted to the navbar logo js
+// Reset animation on logo hover
+document.addEventListener('DOMContentLoaded', function() {
+    const logo = document.querySelector('.logo');
+    const animatedElements = document.querySelectorAll('.floor, .roof, .crane-base, .crane-arm, .crane-line');
+    
+    if (logo && animatedElements.length) {
+      logo.addEventListener('mouseenter', () => {
+        animatedElements.forEach(el => {
+          el.style.animation = 'none';
+          setTimeout(() => {
+            el.style.animation = '';
+          }, 10);
+        });
+      });
+    }
+  });
+
 // Single event listener for DOM content loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize twinkling stars if they exist in the page
