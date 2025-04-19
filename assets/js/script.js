@@ -1,37 +1,25 @@
 /**
  * Guntur Properties - Main JavaScript File
- * Version: 1.0
+ * Version: 1.3
  */
 
+// Single event listener for DOM content loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Mobile Menu Toggle
-    const menuToggle = document.querySelector('.mobile-menu-toggle');
-    const nav = document.querySelector('nav');
+    // Initialize twinkling stars if they exist in the page
+    initStarsAnimation();
     
-    if (menuToggle && nav) {
-        // Create mobile nav container
-        const mobileNav = document.createElement('div');
-        mobileNav.className = 'mobile-nav';
-        mobileNav.appendChild(nav.cloneNode(true));
-        document.body.appendChild(mobileNav);
-        
-        // Toggle mobile menu
-        menuToggle.addEventListener('click', function() {
-            mobileNav.classList.toggle('active');
-            document.body.classList.toggle('menu-open');
-        });
-        
-        // Close menu when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!mobileNav.contains(e.target) && !menuToggle.contains(e.target) && mobileNav.classList.contains('active')) {
-                mobileNav.classList.remove('active');
-                document.body.classList.remove('menu-open');
-            }
-        });
-    }
+    // Initialize stats counter animation
+    initStatsCounter();
     
-    // Property Slider
-    initPropertySlider();
+    // Initialize mobile navigation
+    initMobileNav();
+    
+    // Initialize both slider types (use only one or both depending on your design)
+    // Original property slider (can be removed if using only the gallery slider)
+    // initPropertySlider(); 
+    
+    // New gallery slider (the 3-photo layout)
+    initPropertyGallery();
     
     // Dropdown Filters
     initDropdownFilters();
@@ -39,6 +27,311 @@ document.addEventListener('DOMContentLoaded', function() {
     // Favorite Toggle
     initFavoriteToggle();
 });
+
+/**
+ * Initialize Property Gallery Slider
+ */
+function initPropertyGallery() {
+    const slides = document.querySelectorAll('.property-slide');
+    const dots = document.querySelectorAll('.property-gallery-container .slider-dots .dot');
+    const nextBtn = document.querySelector('.property-gallery-container .next-btn');
+    const prevBtn = document.querySelector('.property-gallery-container .prev-btn');
+    
+    if (!slides.length || !dots.length || !nextBtn || !prevBtn) return;
+    
+    let currentSlide = 0;
+    let autoSlideInterval;
+    
+    // Show the specified slide
+    function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active'));
+        dots.forEach(dot => dot.classList.remove('active'));
+        
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+    }
+    
+    // Go to next slide
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % slides.length;
+        showSlide(currentSlide);
+    }
+    
+    // Go to previous slide
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+        showSlide(currentSlide);
+    }
+    
+    // Event listeners
+    nextBtn.addEventListener('click', () => {
+        nextSlide();
+        resetAutoSlide();
+    });
+    
+    prevBtn.addEventListener('click', () => {
+        prevSlide();
+        resetAutoSlide();
+    });
+    
+    // Add click events to dots
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+            currentSlide = index;
+            showSlide(currentSlide);
+            resetAutoSlide();
+        });
+    });
+    
+    // Auto slide functionality
+    function startAutoSlide() {
+        autoSlideInterval = setInterval(nextSlide, 5000);
+    }
+    
+    function resetAutoSlide() {
+        clearInterval(autoSlideInterval);
+        startAutoSlide();
+    }
+    
+    // Initialize
+    showSlide(currentSlide);
+    startAutoSlide();
+}
+
+/**
+ * Initialize Stars Animation
+ */
+function initStarsAnimation() {
+    // Check if the hero section with stars exists
+    const heroSection = document.querySelector('.hero-section');
+    if (!heroSection) return;
+    
+    // Check if sparkle stars already exist
+    if (document.querySelector('.section-tag .sparkle-star')) {
+        // Sparkle stars are already in the HTML, no need to create them
+        return;
+    }
+    
+    // Look for section-tag to add sparkle stars
+    const sectionTag = heroSection.querySelector('.section-tag');
+    if (sectionTag) {
+        // Clear existing content (dots)
+        sectionTag.innerHTML = '';
+        
+        // Create sparkle stars
+        const starLarge = document.createElement('div');
+        starLarge.className = 'sparkle-star sparkle-star-large';
+        starLarge.innerHTML = '<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 0L23.5 12.5L36 18L23.5 23.5L18 36L12.5 23.5L0 18L12.5 12.5L18 0Z" fill="#2048A8"/></svg>';
+        
+        const starMedium = document.createElement('div');
+        starMedium.className = 'sparkle-star sparkle-star-medium';
+        starMedium.innerHTML = '<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 0L23.5 12.5L36 18L23.5 23.5L18 36L12.5 23.5L0 18L12.5 12.5L18 0Z" fill="#2048A8"/></svg>';
+        
+        const starSmall = document.createElement('div');
+        starSmall.className = 'sparkle-star sparkle-star-small';
+        starSmall.innerHTML = '<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 0L23.5 12.5L36 18L23.5 23.5L18 36L12.5 23.5L0 18L12.5 12.5L18 0Z" fill="#2048A8"/></svg>';
+        
+        // Add stars to section tag
+        sectionTag.appendChild(starLarge);
+        sectionTag.appendChild(starMedium);
+        sectionTag.appendChild(starSmall);
+    }
+    
+    // Also add stars to featured properties section if it exists
+    const featuredSection = document.querySelector('.featured-properties .section-tag');
+    if (featuredSection && !featuredSection.querySelector('.sparkle-star')) {
+        // Clear existing content (dots)
+        featuredSection.innerHTML = '';
+        
+        // Create sparkle stars
+        const starLarge = document.createElement('div');
+        starLarge.className = 'sparkle-star sparkle-star-large';
+        starLarge.innerHTML = '<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 0L23.5 12.5L36 18L23.5 23.5L18 36L12.5 23.5L0 18L12.5 12.5L18 0Z" fill="#2048A8"/></svg>';
+        
+        const starMedium = document.createElement('div');
+        starMedium.className = 'sparkle-star sparkle-star-medium';
+        starMedium.innerHTML = '<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 0L23.5 12.5L36 18L23.5 23.5L18 36L12.5 23.5L0 18L12.5 12.5L18 0Z" fill="#2048A8"/></svg>';
+        
+        const starSmall = document.createElement('div');
+        starSmall.className = 'sparkle-star sparkle-star-small';
+        starSmall.innerHTML = '<svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 0L23.5 12.5L36 18L23.5 23.5L18 36L12.5 23.5L0 18L12.5 12.5L18 0Z" fill="#2048A8"/></svg>';
+        
+        // Add stars to featured section
+        featuredSection.appendChild(starLarge);
+        featuredSection.appendChild(starMedium);
+        featuredSection.appendChild(starSmall);
+    }
+}
+
+/**
+ * Initialize Stats Counter Animation
+ */
+function initStatsCounter() {
+    // Set up the Intersection Observer to trigger counting when stats are visible
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            // If the element is in the viewport
+            if (entry.isIntersecting) {
+                // Start the counting animations
+                startCounting();
+                // Once we've started the animation, no need to observe anymore
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.5 }); // Trigger when at least 50% of the stats section is visible
+
+    // Observe the stats section
+    const statsSection = document.querySelector('.hero-stats');
+    if (statsSection) {
+        observer.observe(statsSection);
+    }
+}
+
+/**
+ * Function to animate counting for all stats
+ */
+function startCounting() {
+    // Get all stat elements
+    const statElements = document.querySelectorAll('.stat-item h2');
+    
+    statElements.forEach(statElement => {
+        // Get the target number (remove the '+' if present)
+        const targetNumber = parseInt(statElement.textContent.replace(/\D/g, ''));
+        // Store the original text to preserve any '+' or other symbols
+        const originalText = statElement.textContent;
+        const hasPlusSign = originalText.includes('+');
+        
+        // Calculate animation duration based on the number size
+        // Larger numbers will take longer to count
+        const duration = Math.min(2000, Math.max(1000, targetNumber * 3));
+        
+        // Start from 0
+        let startNumber = 0;
+        // If it's a particularly large number, don't start from 0 to make the animation smoother
+        if (targetNumber > 1000) {
+            startNumber = Math.floor(targetNumber * 0.7); // Start at 70% of the target
+        }
+        
+        // Set the element to start number
+        statElement.textContent = startNumber + (hasPlusSign ? '+' : '');
+        
+        // Add animating class for the scaling effect
+        statElement.classList.add('animating');
+        
+        // Get the timestamp when animation starts
+        const startTime = performance.now();
+        
+        // Animation function
+        function updateCount(currentTime) {
+            // Calculate how far through the animation we are (0 to 1)
+            const elapsedTime = currentTime - startTime;
+            const progress = Math.min(elapsedTime / duration, 1);
+            
+            // Use easeOutQuad easing function for more natural counting
+            const easedProgress = 1 - (1 - progress) * (1 - progress);
+            
+            // Calculate the current number to display
+            const currentNumber = Math.floor(startNumber + (targetNumber - startNumber) * easedProgress);
+            
+            // Update the element text
+            statElement.textContent = currentNumber + (hasPlusSign ? '+' : '');
+            
+            // If we're not done, request another animation frame
+            if (progress < 1) {
+                requestAnimationFrame(updateCount);
+            } else {
+                // Animation is complete, restore the original text to ensure accuracy
+                statElement.textContent = originalText;
+                // Remove the animating class
+                setTimeout(() => {
+                    statElement.classList.remove('animating');
+                }, 200);
+            }
+        }
+        
+        // Start the animation
+        requestAnimationFrame(updateCount);
+    });
+}
+
+/**
+ * Mobile Navigation Functionality
+ */
+function initMobileNav() {
+    const menuToggle = document.querySelector('.mobile-menu-toggle');
+    const nav = document.querySelector('nav');
+    
+    // Check if mobile nav already exists
+    if (document.querySelector('.mobile-nav')) {
+        return;
+    }
+    
+    if (menuToggle && nav) {
+        // Create mobile nav overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'mobile-menu-overlay';
+        document.body.appendChild(overlay);
+        
+        // Create mobile nav container
+        const mobileNav = document.createElement('div');
+        mobileNav.className = 'mobile-nav';
+        
+        // Clone the navigation menu
+        mobileNav.appendChild(nav.cloneNode(true));
+        
+        // Add close button to mobile nav
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'mobile-nav-close';
+        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
+        mobileNav.insertBefore(closeBtn, mobileNav.firstChild);
+        
+        // Add contact button if it exists
+        const contactBtn = document.querySelector('.contact-btn');
+        if (contactBtn) {
+            const mobileContactBtn = contactBtn.cloneNode(true);
+            mobileNav.appendChild(mobileContactBtn);
+        }
+        
+        document.body.appendChild(mobileNav);
+        
+        // Toggle mobile menu
+        menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            mobileNav.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.classList.toggle('menu-open');
+        });
+        
+        // Close menu when clicking close button
+        closeBtn.addEventListener('click', function() {
+            mobileNav.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        });
+        
+        // Close menu when clicking overlay
+        overlay.addEventListener('click', function() {
+            mobileNav.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        });
+        
+        // Close menu when clicking on a nav link
+        const navLinks = mobileNav.querySelectorAll('a');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                mobileNav.classList.remove('active');
+                overlay.classList.remove('active');
+                document.body.classList.remove('menu-open');
+            });
+        });
+        
+        // Prevent closing when clicking inside the mobile nav
+        mobileNav.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    }
+}
 
 /**
  * Initialize Property Slider
@@ -80,6 +373,7 @@ function initPropertySlider() {
     ];
     
     let currentSlide = 0;
+    let autoSlideInterval;
     
     // Create slides from properties data
     function createSlides() {
@@ -122,15 +416,26 @@ function initPropertySlider() {
     createSlides();
     
     // Next slide
-    nextBtn.addEventListener('click', function() {
+    function nextSlide() {
         currentSlide = (currentSlide + 1) % properties.length;
         createSlides();
-    });
+    }
     
     // Previous slide
-    prevBtn.addEventListener('click', function() {
+    function prevSlide() {
         currentSlide = (currentSlide - 1 + properties.length) % properties.length;
         createSlides();
+    }
+    
+    // Add event listeners
+    nextBtn.addEventListener('click', function() {
+        nextSlide();
+        resetAutoSlide();
+    });
+    
+    prevBtn.addEventListener('click', function() {
+        prevSlide();
+        resetAutoSlide();
     });
     
     // Dot navigation
@@ -138,14 +443,23 @@ function initPropertySlider() {
         dot.addEventListener('click', function() {
             currentSlide = index;
             createSlides();
+            resetAutoSlide();
         });
     });
     
-    // Auto slide every 5 seconds
-    setInterval(function() {
-        currentSlide = (currentSlide + 1) % properties.length;
-        createSlides();
-    }, 5000);
+    // Start auto slide
+    function startAutoSlide() {
+        autoSlideInterval = setInterval(nextSlide, 5000);
+    }
+    
+    // Reset auto slide timer
+    function resetAutoSlide() {
+        clearInterval(autoSlideInterval);
+        startAutoSlide();
+    }
+    
+    // Initialize auto slide
+    startAutoSlide();
 }
 
 /**
@@ -219,7 +533,10 @@ function initFavoriteToggle() {
     const favoriteBtns = document.querySelectorAll('.favorite-btn');
     
     favoriteBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
             const icon = this.querySelector('i');
             
             if (icon.classList.contains('far')) {
@@ -235,76 +552,12 @@ function initFavoriteToggle() {
     });
 }
 
-/**
- * Add CSS for elements created by JavaScript
- */
-const dynamicStyles = document.createElement('style');
-dynamicStyles.textContent = `
-    .mobile-nav {
-        position: fixed;
-        top: 0;
-        right: -300px;
-        width: 300px;
-        height: 100vh;
-        background-color: var(--primary-color);
-        z-index: 1001;
-        padding: 60px 30px 30px;
-        transition: right 0.3s ease;
-        box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .mobile-nav.active {
-        right: 0;
-    }
-    
-    .mobile-nav ul {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .mobile-nav ul li a {
-        display: block;
-        padding: 10px 0;
-        font-size: 18px;
-    }
-    
-    body.menu-open {
-        overflow: hidden;
-    }
-    
-    .dropdown-content {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        background-color: var(--white);
-        border: 1px solid var(--gray);
-        border-radius: 5px;
-        z-index: 10;
-        box-shadow: var(--box-shadow);
-        display: none;
-        margin-top: 5px;
-    }
-    
-    .dropdown-content.active {
-        display: block;
-    }
-    
-    .dropdown-content a {
-        display: block;
-        padding: 10px 15px;
-        color: var(--text-dark);
-        text-decoration: none;
-        border-bottom: 1px solid var(--gray);
-    }
-    
-    .dropdown-content a:last-child {
-        border-bottom: none;
-    }
-    
-    .dropdown-content a:hover {
-        background-color: var(--gray-light);
-    }
-`;
+// Optional: Allow manual triggering of the animation for testing
+window.resetCountAnimation = function() {
+    const statElements = document.querySelectorAll('.stat-item h2');
+    statElements.forEach(el => {
+        el.textContent = el.textContent.replace(/\d+/g, '0');
+    });
+    setTimeout(startCounting, 500);
+};
 
-document.head.appendChild(dynamicStyles);
