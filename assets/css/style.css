@@ -832,7 +832,265 @@ body.menu-open {
     background-color: var(--gray-light);
 }
 
-/* Property Gallery Slider Styles */
+/* =========== Featured Properties Carousel =========== */
+.carousel-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 450px;
+    overflow: hidden;
+    border-radius: 12px;
+    margin: 0 auto;
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.carousel {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.carousel-item {
+    position: absolute;
+    height: 100%;
+    transition: all 0.6s ease;
+    opacity: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: var(--box-shadow);
+}
+
+/* Left item (previous) positioning and styling */
+.carousel-item.prev {
+    left: 0;
+    width: 25%;
+    height: 80%;
+    top: 10%;
+    z-index: 1;
+    filter: blur(4px);
+    opacity: 0.6;
+    transform: translateX(0);
+}
+
+/* Active item (center) positioning and styling */
+.carousel-item.active {
+    left: 20%;
+    width: 60%;
+    height: 100%;
+    top: 0;
+    z-index: 2;
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Next item (right) positioning and styling */
+.carousel-item.next {
+    left: 75%;
+    width: 25%;
+    height: 80%;
+    top: 10%;
+    z-index: 1;
+    filter: blur(4px);
+    opacity: 0.6;
+    transform: translateX(0);
+}
+
+/* Hidden items */
+.carousel-item.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.slide-content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Property details button */
+.property-details {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+.property-details:hover {
+    background-color: var(--contact-btn-color);
+}
+
+/* Navigation controls */
+.nav-controls {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+    gap: 6px;
+}
+
+.nav-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-dot.active {
+    background-color: white;
+}
+
+/* Nav arrow buttons */
+.nav-arrows {
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.arrow-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.arrow-btn:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.05);
+}
+
+.arrow-btn.prev {
+    margin-left: 5%;
+}
+
+.arrow-btn.next {
+    margin-right: 5%;
+}
+
+/* Progress dots */
+.progress-dots {
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    z-index: 5;
+}
+
+.dot {
+    width: 30px;
+    height: 3px;
+    background-color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+.dot.active {
+    background-color: white;
+}
+
+/* Responsive Carousel Adjustments */
+@media screen and (max-width: 992px) {
+    .carousel-container {
+        height: 400px;
+    }
+    
+    .carousel-item.active {
+        left: 15%;
+        width: 70%;
+    }
+    
+    .carousel-item.prev {
+        width: 22%;
+    }
+    
+    .carousel-item.next {
+        left: 78%;
+        width: 22%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .carousel-container {
+        height: 350px;
+    }
+    
+    .carousel-item.active {
+        left: 10%;
+        width: 80%;
+    }
+    
+    .carousel-item.prev,
+    .carousel-item.next {
+        opacity: 0.4;
+    }
+    
+    .carousel-item.prev {
+        left: -5%;
+        width: 20%;
+    }
+    
+    .carousel-item.next {
+        left: 85%;
+        width: 20%;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    .carousel-container {
+        height: 300px;
+    }
+    
+    .carousel-item.active {
+        left: 0;
+        width: 100%;
+    }
+    
+    .carousel-item.prev,
+    .carousel-item.next {
+        display: none;
+    }
+}
+
+/* Property Gallery Slider Styles (Old styles kept for compatibility) */
 .property-gallery-container {
     width: 100%;
     overflow: hidden;
@@ -866,12 +1124,6 @@ body.menu-open {
     overflow: hidden;
     border-radius: 10px;
     box-shadow: var(--box-shadow);
-}
-
-.property-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
 }
 
 .left-image {
@@ -1041,6 +1293,7 @@ body.menu-open {
         height: 190px;
     }
 }
+
 /* =========== Why Choose Us Section =========== */
 .why-choose-us {
     padding: 80px 0;

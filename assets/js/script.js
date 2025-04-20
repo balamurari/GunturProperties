@@ -32,12 +32,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize mobile navigation
     initMobileNav();
     
-    // Initialize both slider types (use only one or both depending on your design)
-    // Original property slider (can be removed if using only the gallery slider)
-    // initPropertySlider(); 
-    
-    // New gallery slider (the 3-photo layout)
-    initPropertyGallery();
+    // Initialize the new property carousel
+    initPropertyCarousel();
     
     // Dropdown Filters
     initDropdownFilters();
@@ -47,73 +43,197 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Initialize Property Gallery Slider
+ * Initialize Property Carousel
  */
-function initPropertyGallery() {
-    const slides = document.querySelectorAll('.property-slide');
-    const dots = document.querySelectorAll('.property-gallery-container .slider-dots .dot');
-    const nextBtn = document.querySelector('.property-gallery-container .next-btn');
-    const prevBtn = document.querySelector('.property-gallery-container .prev-btn');
+function initPropertyCarousel() {
+    // Check if carousel container exists on the page
+    const carouselContainer = document.querySelector('.carousel-container');
+    if (!carouselContainer) return;
     
-    if (!slides.length || !dots.length || !nextBtn || !prevBtn) return;
+    const carousel = document.querySelector('.carousel');
+    const progressDotsContainer = document.querySelector('.progress-dots');
+    const prevBtn = document.querySelector('.arrow-btn.prev');
+    const nextBtn = document.querySelector('.arrow-btn.next');
     
-    let currentSlide = 0;
+    // Property data for carousel slides
+    const properties = [
+        {
+            image: 'assets/images/carouselFront.png',
+            title: 'Luxury Villa in Park Avenue',
+            price: '₹2,50,00,000'
+        },
+        {
+            image: 'assets/images/carousel back 1.png',
+            title: 'Modern Apartment Downtown',
+            price: '₹85,00,000'
+        },
+        {
+            image: 'assets/images/carousel back 2.png',
+            title: 'Seaside Cottage with Ocean View',
+            price: '₹1,20,00,000'
+        },
+        {
+            image: 'assets/images/home.png',
+            title: 'Family Home in Guntur',
+            price: '₹1,80,00,000'
+        },
+        {
+            image: 'assets/images/woodHome.png',
+            title: 'Exclusive Penthouse',
+            price: '₹3,50,00,000'
+        }
+    ];
+    
+    let currentIndex = 0;
     let autoSlideInterval;
     
-    // Show the specified slide
-    function showSlide(index) {
-        slides.forEach(slide => slide.classList.remove('active'));
-        dots.forEach(dot => dot.classList.remove('active'));
+    // Create carousel slides
+    function createSlides() {
+        carousel.innerHTML = '';
+        progressDotsContainer.innerHTML = '';
         
-        slides[index].classList.add('active');
-        dots[index].classList.add('active');
-    }
-    
-    // Go to next slide
-    function nextSlide() {
-        currentSlide = (currentSlide + 1) % slides.length;
-        showSlide(currentSlide);
-    }
-    
-    // Go to previous slide
-    function prevSlide() {
-        currentSlide = (currentSlide - 1 + slides.length) % slides.length;
-        showSlide(currentSlide);
-    }
-    
-    // Event listeners
-    nextBtn.addEventListener('click', () => {
-        nextSlide();
-        resetAutoSlide();
-    });
-    
-    prevBtn.addEventListener('click', () => {
-        prevSlide();
-        resetAutoSlide();
-    });
-    
-    // Add click events to dots
-    dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => {
-            currentSlide = index;
-            showSlide(currentSlide);
-            resetAutoSlide();
+        properties.forEach((property, index) => {
+            // Create carousel item
+            const item = document.createElement('div');
+            item.className = 'carousel-item';
+            
+            // Create slide content
+            item.innerHTML = `
+                <div class="slide-content" style="background-image: linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url('${property.image}')">
+                    <div class="slide-info">
+                        <h3>${property.title}</h3>
+                        <p>${property.price}</p>
+                    </div>
+                    ${index === currentIndex ? '<div class="property-details">View Property Details</div>' : ''}
+                </div>
+            `;
+            
+            carousel.appendChild(item);
+            
+            // Create progress dot
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            if (index === currentIndex) dot.classList.add('active');
+            
+            // Add click event to dot
+            dot.addEventListener('click', () => {
+                goToSlide(index);
+                resetAutoSlide();
+            });
+            
+            progressDotsContainer.appendChild(dot);
         });
-    });
-    
-    // Auto slide functionality
-    function startAutoSlide() {
-        autoSlideInterval = setInterval(nextSlide, 5000);
+        
+        updateCarousel();
     }
     
+    // Update carousel display
+    function updateCarousel() {
+        const items = document.querySelectorAll('.carousel-item');
+        const dots = document.querySelectorAll('.dot');
+        
+        items.forEach((item, index) => {
+            // Remove all position classes
+            item.classList.remove('active', 'prev', 'next', 'hidden');
+            
+            // Remove property details button if exists
+            const detailsBtn = item.querySelector('.property-details');
+            if (detailsBtn) {
+                detailsBtn.remove();
+            }
+            
+            // Set position class based on index
+            if (index === currentIndex) {
+                item.classList.add('active');
+                // Add property details button to active slide
+                const content = item.querySelector('.slide-content');
+                const btn = document.createElement('div');
+                btn.classList.add('property-details');
+                btn.textContent = 'View Property Details';
+                content.appendChild(btn);
+            } else if (index === getPrevIndex()) {
+                item.classList.add('prev');
+            } else if (index === getNextIndex()) {
+                item.classList.add('next');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+        
+        // Update progress dots
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === currentIndex);
+        });
+    }
+    
+    // Helper functions for navigation
+    function getPrevIndex() {
+        return (currentIndex === 0) ? properties.length - 1 : currentIndex - 1;
+    }
+    
+    function getNextIndex() {
+        return (currentIndex === properties.length - 1) ? 0 : currentIndex + 1;
+    }
+    
+    // Navigate to specific slide
+    function goToSlide(index) {
+        currentIndex = index;
+        updateCarousel();
+    }
+    
+    // Navigate to previous slide
+    function goToPrev() {
+        currentIndex = getPrevIndex();
+        updateCarousel();
+    }
+    
+    // Navigate to next slide
+    function goToNext() {
+        currentIndex = getNextIndex();
+        updateCarousel();
+    }
+    
+    // Start auto slide functionality
+    function startAutoSlide() {
+        autoSlideInterval = setInterval(goToNext, 5000);
+    }
+    
+    // Reset auto slide timer
     function resetAutoSlide() {
         clearInterval(autoSlideInterval);
         startAutoSlide();
     }
     
-    // Initialize
-    showSlide(currentSlide);
+    // Add event listeners to navigation buttons
+    prevBtn.addEventListener('click', () => {
+        goToPrev();
+        resetAutoSlide();
+    });
+    
+    nextBtn.addEventListener('click', () => {
+        goToNext();
+        resetAutoSlide();
+    });
+    
+    // Pause auto-slide on hover
+    carouselContainer.addEventListener('mouseenter', () => {
+        clearInterval(autoSlideInterval);
+    });
+    
+    carouselContainer.addEventListener('mouseleave', () => {
+        startAutoSlide();
+    });
+    
+    // Initialize carousel
+    createSlides();
     startAutoSlide();
+    
+    // Add property details button click event
+    carousel.addEventListener('click', (e) => {
+        if (e.target.classList.contains('property-details')) {
+            window.location.href = 'properties.html';
+        }
+    });
 }
 
 /**
@@ -352,135 +472,6 @@ function initMobileNav() {
 }
 
 /**
- * Initialize Property Slider
- */
-function initPropertySlider() {
-    const sliderContainer = document.querySelector('.property-slider');
-    const nextBtn = document.querySelector('.next-btn');
-    const prevBtn = document.querySelector('.prev-btn');
-    const dots = document.querySelectorAll('.slider-dots .dot');
-    
-    if (!sliderContainer || !nextBtn || !prevBtn) return;
-    
-    // Sample properties data (in a real scenario, this would come from backend)
-    const properties = [
-        {
-            image: 'assets/images/carouselFront.png',
-            title: 'Luxury Villa in Park Avenue',
-            price: '$2,500,000',
-            beds: 4,
-            baths: 3,
-            area: '3,500 sq ft'
-        },
-        {
-            image: 'assets/images/carousel back 1.png',
-            title: 'Modern Apartment Downtown',
-            price: '$850,000',
-            beds: 2,
-            baths: 2,
-            area: '1,200 sq ft'
-        },
-        {
-            image: 'assets/images/carousel back 2.png',
-            title: 'Seaside Cottage with Ocean View',
-            price: '$1,200,000',
-            beds: 3,
-            baths: 2,
-            area: '2,100 sq ft'
-        }
-    ];
-    
-    let currentSlide = 0;
-    let autoSlideInterval;
-    
-    // Create slides from properties data
-    function createSlides() {
-        sliderContainer.innerHTML = '';
-        
-        properties.forEach((property, index) => {
-            const slide = document.createElement('div');
-            slide.className = 'property-slide';
-            slide.style.display = index === currentSlide ? 'block' : 'none';
-            
-            slide.innerHTML = `
-                <div class="property-card">
-                    <div class="property-images">
-                        <img src="${property.image}" alt="${property.title}">
-                    </div>
-                    <div class="property-favorite">
-                        <button class="favorite-btn">
-                            <i class="far fa-heart"></i>
-                        </button>
-                    </div>
-                    <div class="property-details">
-                        <a href="#" class="view-details-btn">View Property Details</a>
-                    </div>
-                </div>
-            `;
-            
-            sliderContainer.appendChild(slide);
-        });
-        
-        // Update dots
-        dots.forEach((dot, index) => {
-            dot.classList.toggle('active', index === currentSlide);
-        });
-        
-        // Initialize favorite buttons
-        initFavoriteToggle();
-    }
-    
-    // Create initial slides
-    createSlides();
-    
-    // Next slide
-    function nextSlide() {
-        currentSlide = (currentSlide + 1) % properties.length;
-        createSlides();
-    }
-    
-    // Previous slide
-    function prevSlide() {
-        currentSlide = (currentSlide - 1 + properties.length) % properties.length;
-        createSlides();
-    }
-    
-    // Add event listeners
-    nextBtn.addEventListener('click', function() {
-        nextSlide();
-        resetAutoSlide();
-    });
-    
-    prevBtn.addEventListener('click', function() {
-        prevSlide();
-        resetAutoSlide();
-    });
-    
-    // Dot navigation
-    dots.forEach((dot, index) => {
-        dot.addEventListener('click', function() {
-            currentSlide = index;
-            createSlides();
-            resetAutoSlide();
-        });
-    });
-    
-    // Start auto slide
-    function startAutoSlide() {
-        autoSlideInterval = setInterval(nextSlide, 5000);
-    }
-    
-    // Reset auto slide timer
-    function resetAutoSlide() {
-        clearInterval(autoSlideInterval);
-        startAutoSlide();
-    }
-    
-    // Initialize auto slide
-    startAutoSlide();
-}
-
-/**
  * Initialize Dropdown Filters
  */
 function initDropdownFilters() {
@@ -501,7 +492,7 @@ function initDropdownFilters() {
                 if (this.textContent.includes('Property Type')) {
                     options = ['Apartment', 'House', 'Villa', 'Office', 'Land'];
                 } else if (this.textContent.includes('Pricing Range')) {
-                    options = ['Under $500,000', '$500,000 - $1,000,000', '$1,000,000 - $2,000,000', 'Above $2,000,000'];
+                    options = ['Under ₹50,00,000', '₹50,00,000 - ₹1,00,00,000', '₹1,00,00,000 - ₹2,00,00,000', 'Above ₹2,00,00,000'];
                 } else if (this.textContent.includes('Property Size')) {
                     options = ['Under 1,000 sq ft', '1,000 - 2,000 sq ft', '2,000 - 3,000 sq ft', 'Above 3,000 sq ft'];
                 }
