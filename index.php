@@ -273,104 +273,27 @@
           >
         </div>
 
-        <!-- Property Gallery Slider -->
-        <div class="property-gallery-container">
-          <div class="property-gallery">
-            <div class="property-slide active">
-              <div class="property-image left-image">
-                <img
-                  src="assets/images/carouselFront.png"
-                  alt="Exterior Property View"
-                />
-              </div>
-              <div class="property-image main-image">
-                <img
-                  src="assets/images/living-room.jpg"
-                  alt="Modern Living Room"
-                />
-                <div class="property-favorite">
-                  <button class="favorite-btn">
-                    <i class="far fa-heart"></i>
-                  </button>
-                </div>
-                <div class="property-details">
-                  <a href="#" class="view-details-btn">View Property Details</a>
-                </div>
-              </div>
-              <div class="property-image right-image">
-                <img
-                  src="assets/images/interior-view.jpg"
-                  alt="Interior View"
-                />
-              </div>
-            </div>
+        <!-- Property Carousel Integration -->
+        <div class="carousel-container">
+          <div class="carousel">
+            <!-- Carousel items will be added dynamically by JavaScript -->
+          </div>
 
-            <div class="property-slide">
-              <div class="property-image left-image">
-                <img
-                  src="assets/images/carousel back 1.png"
-                  alt="Modern House Exterior"
-                />
-              </div>
-              <div class="property-image main-image">
-                <img
-                  src="assets/images/modern-kitchen.jpg"
-                  alt="Modern Kitchen"
-                />
-                <div class="property-favorite">
-                  <button class="favorite-btn">
-                    <i class="far fa-heart"></i>
-                  </button>
-                </div>
-                <div class="property-details">
-                  <a href="#" class="view-details-btn">View Property Details</a>
-                </div>
-              </div>
-              <div class="property-image right-image">
-                <img src="assets/images/bedroom.jpg" alt="Master Bedroom" />
-              </div>
+          <div class="nav-arrows">
+            <div class="arrow-btn prev">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b71ca" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
             </div>
-
-            <div class="property-slide">
-              <div class="property-image left-image">
-                <img
-                  src="assets/images/carousel back 2.png"
-                  alt="Luxury Villa"
-                />
-              </div>
-              <div class="property-image main-image">
-                <img
-                  src="assets/images/villa-interior.jpg"
-                  alt="Villa Interior"
-                />
-                <div class="property-favorite">
-                  <button class="favorite-btn">
-                    <i class="far fa-heart"></i>
-                  </button>
-                </div>
-                <div class="property-details">
-                  <a href="#" class="view-details-btn">View Property Details</a>
-                </div>
-              </div>
-              <div class="property-image right-image">
-                <img src="assets/images/bathroom.jpg" alt="Luxury Bathroom" />
-              </div>
+            <div class="arrow-btn next">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b71ca" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
             </div>
           </div>
 
-          <!-- Slider Navigation -->
-          <div class="slider-navigation">
-            <button class="prev-btn">
-              <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="slider-dots">
-              <span class="dot active"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-            <button class="next-btn">
-              <i class="fas fa-chevron-right"></i>
-            </button>
+          <div class="progress-dots">
+            <!-- Dots will be added dynamically by JavaScript -->
           </div>
         </div>
       </div>
