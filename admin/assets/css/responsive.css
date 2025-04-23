@@ -1,0 +1,237 @@
+/**
+ * Guntur Properties Admin Panel - Responsive Stylesheet
+ * Contains responsive styling for different screen sizes
+ */
+
+/* Tablets and small desktops */
+@media (max-width: 1200px) {
+    .stats-grid,
+    .benefits-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .property-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .agent-card {
+        flex-direction: column;
+    }
+    
+    .agent-image {
+        margin-bottom: 15px;
+    }
+    
+    .search-container {
+        flex-direction: column;
+    }
+    
+    .search-input {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .search-filters {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .dashboard-header .user-dropdown {
+        margin-top: 15px;
+    }
+}
+
+/* Mobile devices */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 250px;
+        position: fixed;
+        left: -250px;
+        transition: left 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .sidebar.show {
+        left: 0;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+        background-color: var(--primary-color);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+    }
+    
+    .dashboard-header {
+        margin-left: 50px;
+    }
+    
+    .stats-grid,
+    .benefits-grid,
+    .features-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .property-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-filters {
+        flex-wrap: wrap;
+    }
+    
+    .filter-dropdown {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .card-header-actions {
+        flex-direction: column;
+    }
+    
+    .card-header-actions h2 {
+        margin-bottom: 10px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .table-actions {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .table-actions .btn {
+        margin-bottom: 5px;
+    }
+    
+    .pagination {
+        flex-wrap: wrap;
+    }
+    
+    .pagination a {
+        margin-bottom: 5px;
+    }
+    
+    .current-images-grid,
+    .image-upload-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-sidebar {
+        margin-bottom: 20px;
+    }
+    
+    .icon-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .login-container {
+        width: 90%;
+    }
+    
+    .stats-grid,
+    .benefits-grid,
+    .features-container,
+    .icon-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .user-dropdown-toggle span {
+        display: none;
+    }
+    
+    .card {
+        padding: 10px;
+    }
+    
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: 10px;
+    }
+    
+    .pagination a {
+        padding: 5px 8px;
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .table th,
+    .table td {
+        padding: 8px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .sidebar,
+    .mobile-menu-toggle,
+    .dashboard-header .user-dropdown,
+    .card-header-actions .btn,
+    .form-actions,
+    .footer {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    body {
+        background-color: white !important;
+    }
+    
+    .table-actions {
+        display: none;
+    }
+}
