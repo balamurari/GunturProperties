@@ -1,3 +1,4 @@
+
 <?php
 /**
  * Agents Page
@@ -225,5 +226,4 @@ include "header.php";
     </div>
 </section>
 <?php endif; ?>
-
 <?php include 'footer.php'; ?>

@@ -1,6 +1,6 @@
 
-    <!-- Footer -->
-    <footer>
+
+<footer>
       <div class="container">
         <div class="footer-content">
           <div class="footer-company">
@@ -62,8 +62,10 @@
           </div>
         </div>
       </div>
+
     </footer>
 
     <script src="assets/js/script.js"></script>
   </body>
 </html>
+
