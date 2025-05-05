@@ -1,14 +1,14 @@
 <?php
 /**
- * Inquiries Index Page
- * Lists all inquiries with filtering and search
+ * enquiries Index Page
+ * Lists all enquiries with filtering and search
  */
 require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/functions.php';
 
 // Set page title
-$page_title = 'Manage Inquiries';
+$page_title = 'Manage Enquiries';
 
 // Get database connection
 $db = new Database();
@@ -36,7 +36,7 @@ if (isset($_GET['agent']) && is_numeric($_GET['agent'])) {
     $filters['agent_id'] = $_GET['agent'];
 }
 
-// Get total inquiries count for pagination
+// Get total enquiries count for pagination
 $count_sql = "SELECT COUNT(*) as total FROM enquiries WHERE 1=1";
 
 if (!empty($search)) {
@@ -71,7 +71,7 @@ if (!empty($filters)) {
 $total_count = $db->single()['total'];
 $total_pages = ceil($total_count / $limit);
 
-// Get inquiries with filters
+// Get enquiries with filters
 $sql = "SELECT e.*, p.title AS property_title, u.name AS agent_name 
         FROM enquiries e
         LEFT JOIN properties p ON e.property_id = p.id
@@ -112,7 +112,7 @@ if (!empty($filters)) {
 $db->bind(':limit', $limit, PDO::PARAM_INT);
 $db->bind(':offset', $offset, PDO::PARAM_INT);
 
-$inquiries = $db->resultSet();
+$enquiries = $db->resultSet();
 
 // Get properties for filter dropdown
 $db->query("SELECT id, title FROM properties ORDER BY title ASC");
@@ -125,14 +125,14 @@ $agents = getAgents();
 include_once '../includes/header.php';
 ?>
 
-<!-- Inquiry Filters and Search -->
+<!-- enquiry Filters and Search -->
 <div class="card mb-3">
     <div class="card-body">
         <form method="GET" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" class="filter-form">
             <div class="form-row">
                 <div class="form-group">
                     <label for="search">Search</label>
-                    <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search inquiries...">
+                    <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search enquiries...">
                 </div>
                 
                 <div class="form-group">
@@ -149,7 +149,7 @@ include_once '../includes/header.php';
                     <label for="property">Property</label>
                     <select id="property" name="property">
                         <option value="">All Properties</option>
-                        <option value="0" <?php echo isset($filters['property_id']) && $filters['property_id'] === '0' ? 'selected' : ''; ?>>General Inquiries</option>
+                        <option value="0" <?php echo isset($filters['property_id']) && $filters['property_id'] === '0' ? 'selected' : ''; ?>>General enquiries</option>
                         <?php foreach ($properties as $property): ?>
                             <option value="<?php echo $property['id']; ?>" <?php echo isset($filters['property_id']) && $filters['property_id'] == $property['id'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($property['title']); ?>
@@ -180,10 +180,10 @@ include_once '../includes/header.php';
     </div>
 </div>
 
-<!-- Inquiries List -->
+<!-- enquiries List -->
 <div class="card">
     <div class="card-header">
-        <h2 class="mb-0">Inquiries</h2>
+        <h2 class="mb-0">enquiries</h2>
     </div>
     <div class="card-body">
         <div class="table-container">
@@ -202,47 +202,47 @@ include_once '../includes/header.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($inquiries)): ?>
+                    <?php if (empty($enquiries)): ?>
                         <tr>
-                            <td colspan="9" class="text-center">No inquiries found.</td>
+                            <td colspan="9" class="text-center">No enquiries found.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($inquiries as $inquiry): ?>
+                        <?php $i=1; foreach ($enquiries as $enquiry): ?>
                             <tr>
-                                <td><?php echo $inquiry['id']; ?></td>
-                                <td><?php echo htmlspecialchars($inquiry['name']); ?></td>
+                                <td><?php echo $i; $i++; ?></td>
+                                <td><?php echo htmlspecialchars($enquiry['name']); ?></td>
                                 <td>
-                                    <div><?php echo htmlspecialchars($inquiry['email']); ?></div>
-                                    <div><?php echo htmlspecialchars($inquiry['phone']); ?></div>
+                                    <div><?php echo htmlspecialchars($enquiry['email']); ?></div>
+                                    <div><?php echo htmlspecialchars($enquiry['phone']); ?></div>
                                 </td>
-                                <td><?php echo htmlspecialchars($inquiry['subject']); ?></td>
+                                <td><?php echo htmlspecialchars($enquiry['subject']); ?></td>
                                 <td>
-                                    <?php if ($inquiry['property_id']): ?>
-                                        <a href="../properties/edit.php?id=<?php echo $inquiry['property_id']; ?>">
-                                            <?php echo htmlspecialchars($inquiry['property_title']); ?>
+                                    <?php if ($enquiry['property_id']): ?>
+                                        <a href="../properties/edit.php?id=<?php echo $enquiry['property_id']; ?>">
+                                            <?php echo htmlspecialchars($enquiry['property_title']); ?>
                                         </a>
                                     <?php else: ?>
-                                        <span class="text-muted">General Inquiry</span>
+                                        <span class="text-muted">General enquiry</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php if ($inquiry['agent_id']): ?>
-                                        <?php echo htmlspecialchars($inquiry['agent_name']); ?>
+                                    <?php if ($enquiry['agent_id']): ?>
+                                        <?php echo htmlspecialchars($enquiry['agent_name']); ?>
                                     <?php else: ?>
                                         <span class="text-muted">Unassigned</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo formatDate($inquiry['created_at']); ?></td>
+                                <td><?php echo formatDate($enquiry['created_at']); ?></td>
                                 <td>
-                                    <span class="status-badge status-<?php echo $inquiry['status']; ?>">
+                                    <span class="status-badge status-<?php echo $enquiry['status']; ?>">
                                         <?php 
-                                            echo $inquiry['status'] == 'new' ? 'New' : 
-                                                ($inquiry['status'] == 'in_progress' ? 'In Progress' : 'Closed'); 
+                                            echo $enquiry['status'] == 'new' ? 'New' : 
+                                                ($enquiry['status'] == 'in_progress' ? 'In Progress' : 'Closed'); 
                                         ?>
                                     </span>
                                 </td>
                                 <td class="table-actions">
-                                    <a href="view.php?id=<?php echo $inquiry['id']; ?>" class="btn btn-sm btn-primary">
+                                    <a href="view.php?id=<?php echo $enquiry['id']; ?>" class="btn btn-sm btn-primary">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </td>

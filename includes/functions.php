@@ -501,26 +501,3 @@ function generatePagination($current_page, $total_pages, $url_pattern) {
     
     return $html;
 }
-/**
- * Generates the correct URL path for an asset file.
- * Adjust $base_url based on your project structure.
- *
- * @param string $path The relative path to the asset from the assets directory (e.g., 'images/users/pic.jpg' or 'images/agent-placeholder.jpg').
- * @return string The full URL path to the asset.
- */
-function getAssetPath($path) {
-    // Option 1: Simple relative path (adjust if needed)
-    // This assumes your assets folder is one level up from the 'admin/agents/' directory
-    $base_url = '../../assets/'; // Go up from admin/agents/ to root, then into assets/
-
-    // Option 2: Using a BASE_URL constant (Recommended if defined in config.php)
-    // if (defined('BASE_URL')) {
-    //     $base_url = BASE_URL . 'assets/'; // Assumes BASE_URL ends with '/' or adjust accordingly
-    // } else {
-    //     // Fallback if BASE_URL is not defined
-    //     $base_url = '../../assets/'; // Adjust relative path as needed
-    // }
-
-    // Ensure no double slashes and remove leading slash from $path if present
-    return rtrim($base_url, '/') . '/' . ltrim($path, '/');
-}

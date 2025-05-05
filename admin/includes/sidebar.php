@@ -3,58 +3,63 @@
  * Admin Sidebar Include
  * This file contains the sidebar navigation for all admin pages
  */
+
+// Determine current page for active menu highlighting
+$current_page = basename($_SERVER['PHP_SELF']);
+$current_dir = basename(dirname($_SERVER['PHP_SELF']));
 ?>
 <div class="sidebar">
     <div class="sidebar-header">
         <div class="sidebar-logo">
             <h3>Guntur Properties</h3>
         </div>
-        <button class="sidebar-toggle">
-            <i class="fas fa-bars"></i>
+        <!-- Mobile sidebar close button -->
+        <button class="sidebar-close">
+            <i class="fas fa-times"></i>
         </button>
     </div>
     
     <div class="sidebar-menu">
         <ul>
             <li>
-                <a href="dashboard.php" <?php echo basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'class="active"' : ''; ?>>
+                <a href="../dashboard/dashboard.php" <?php echo $current_page == 'dashboard.php' ? 'class="active"' : ''; ?>>
                     <i class="fas fa-tachometer-alt"></i> Dashboard
                 </a>
             </li>
             <li>
-                <a href="properties/index.php" <?php echo strpos($_SERVER['PHP_SELF'], 'properties/') !== false ? 'class="active"' : ''; ?>>
+                <a href="../properties/index.php" <?php echo $current_dir == 'properties' ? 'class="active"' : ''; ?>>
                     <i class="fas fa-home"></i> Properties
                 </a>
             </li>
             <li>
-                <a href="agents/index.php" <?php echo strpos($_SERVER['PHP_SELF'], 'agents/') !== false ? 'class="active"' : ''; ?>>
+                <a href="../agents/index.php" <?php echo $current_dir == 'agents' ? 'class="active"' : ''; ?>>
                     <i class="fas fa-users"></i> Agents
                 </a>
             </li>
-            <li>
-                <a href="inquiries/index.php" <?php echo strpos($_SERVER['PHP_SELF'], 'inquiries/') !== false ? 'class="active"' : ''; ?>>
-                    <i class="fas fa-envelope"></i> Inquiries
+            <!-- <li>
+                <a href="../enquiries/index.php" <?php echo $current_dir == 'enquiries' ? 'class="active"' : ''; ?>>
+                    <i class="fas fa-envelope"></i> Enquiries
                 </a>
-            </li>
+            </li> -->
             <?php if (isAdmin()): ?>
             <li>
-                <a href="users/index.php" <?php echo strpos($_SERVER['PHP_SELF'], 'users/') !== false ? 'class="active"' : ''; ?>>
+                <a href="../users/index.php" <?php echo $current_dir == 'users' ? 'class="active"' : ''; ?>>
                     <i class="fas fa-user-cog"></i> User Management
                 </a>
             </li>
-            <li>
-                <a href="settings.php" <?php echo basename($_SERVER['PHP_SELF']) == 'settings.php' ? 'class="active"' : ''; ?>>
+            <!-- <li>
+                <a href="../dashboard/settings.php" <?php echo $current_page == 'settings.php' ? 'class="active"' : ''; ?>>
                     <i class="fas fa-cog"></i> Settings
                 </a>
-            </li>
+            </li> -->
             <?php endif; ?>
             <li>
-                <a href="profile.php" <?php echo basename($_SERVER['PHP_SELF']) == 'profile.php' ? 'class="active"' : ''; ?>>
+                <a href="../dashboard/profile.php" <?php echo $current_page == 'profile.php' ? 'class="active"' : ''; ?>>
                     <i class="fas fa-user"></i> My Profile
                 </a>
             </li>
             <li>
-                <a href="logout.php">
+                <a href="../dashboard/logout.php">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
             </li>

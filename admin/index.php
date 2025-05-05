@@ -9,7 +9,7 @@ require_once 'includes/functions.php';
 // Check if user is logged in
 if (isLoggedIn()) {
     // Redirect to dashboard
-    redirect('dashboard.php');
+    redirect('dashboard/dashboard.php');
 } else {
     // Redirect to login page
     redirect('login.php');

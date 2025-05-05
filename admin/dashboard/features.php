@@ -3,9 +3,9 @@
  * Property Features Management Page
  * Manage property features
  */
-require_once 'includes/config.php';
-require_once 'includes/database.php';
-require_once 'includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/database.php';
+require_once '../includes/functions.php';
 
 // Set page title
 $page_title = 'Property Features';
@@ -113,7 +113,7 @@ $db->query("SELECT pf.*, COUNT(pfm.property_id) as usage_count
 $features = $db->resultSet();
 
 // Include header
-include_once 'includes/header.php';
+include_once '../includes/header.php';
 ?>
 
 <div class="card mb-3">
@@ -304,5 +304,5 @@ include_once 'includes/header.php';
 
 <?php
 // Include footer
-include_once 'includes/footer.php';
+include_once '../includes/footer.php';
 ?>

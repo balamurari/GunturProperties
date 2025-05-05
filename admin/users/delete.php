@@ -37,7 +37,7 @@ $db->bind(':id', $user_id);
 if ($db->execute()) {
     // Delete user's profile image if exists
     if (!empty($user['profile_pic'])) {
-        $image_path = $_SERVER['DOCUMENT_ROOT'] . '/guntur-properties/' . $user['profile_pic'];
+        $image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $user['profile_pic'];
         if (file_exists($image_path)) {
             unlink($image_path);
         }

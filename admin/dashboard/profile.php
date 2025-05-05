@@ -3,9 +3,9 @@
  * User Profile Page
  * Allows users to update their profile information
  */
-require_once 'includes/config.php';
-require_once 'includes/database.php';
-require_once 'includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/database.php';
+require_once '../includes/functions.php';
 
 // Set page title
 $page_title = 'My Profile';
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (!empty($_FILES['profile_pic']['name'])) {
         $file = $_FILES['profile_pic'];
-        $upload_result = uploadFile($file, $_SERVER['DOCUMENT_ROOT'] . '/guntur-properties/assets/images/users/', ['jpg', 'jpeg', 'png'], 2000000);
+        $upload_result = uploadFile($file, $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/assets/images/users/', ['jpg', 'jpeg', 'png'], 2000000);
         
         if (!$upload_result) {
             $errors[] = 'Failed to upload profile image. Please ensure it is a valid image file and size is less than 2MB.';
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Delete old profile image if exists
             if (!empty($user['profile_pic'])) {
-                $old_image_path = $_SERVER['DOCUMENT_ROOT'] . '/guntur-properties/' . $user['profile_pic'];
+                $old_image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $user['profile_pic'];
                 if (file_exists($old_image_path)) {
                     unlink($old_image_path);
                 }
@@ -149,13 +149,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Include header
-include_once 'includes/header.php';
+include_once '../includes/header.php';
 ?>
 
 <div class="card">
-    <div class="card-header">
+    <!-- <div class="card-header">
         <h2>My Profile</h2>
-    </div>
+    </div> -->
     <div class="card-body">
         <?php if (!empty($errors)): ?>
             <div class="alert alert-error">
@@ -323,5 +323,5 @@ document.getElementById('profile_pic').addEventListener('change', function() {
 
 <?php
 // Include footer
-include_once 'includes/footer.php';
+include_once '../includes/footer.php';
 ?>

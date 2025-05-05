@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (!empty($_FILES['profile_pic']['name'])) {
         $file = $_FILES['profile_pic'];
-        $upload_result = uploadFile($file, $_SERVER['DOCUMENT_ROOT'] . '/guntur-properties/assets/images/agents/', ['jpg', 'jpeg', 'png'], 2000000);
+        $upload_result = uploadFile($file, $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/assets/images/agents/', ['jpg', 'jpeg', 'png'], 2000000);
         
         if (!$upload_result) {
             $errors[] = 'Failed to upload profile image. Please ensure it is a valid image file and size is less than 2MB.';
@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Delete old profile image if exists
             if (!empty($agent['profile_pic'])) {
-                $old_image_path = $_SERVER['DOCUMENT_ROOT'] . '/guntur-properties/' . $agent['profile_pic'];
+                $old_image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $agent['profile_pic'];
                 if (file_exists($old_image_path)) {
                     unlink($old_image_path);
                 }
