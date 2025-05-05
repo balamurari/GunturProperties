@@ -3,9 +3,9 @@
  * Property Types Management Page
  * Manage property types
  */
-require_once 'includes/config.php';
-require_once 'includes/database.php';
-require_once 'includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/database.php';
+require_once '../includes/functions.php';
 
 // Set page title
 $page_title = 'Property Types';
@@ -113,7 +113,7 @@ $db->query("SELECT pt.*, COUNT(p.id) as property_count
 $property_types = $db->resultSet();
 
 // Include header
-include_once 'includes/header.php';
+include_once '../includes/header.php';
 ?>
 
 <div class="card mb-3">
@@ -205,5 +205,5 @@ include_once 'includes/header.php';
 
 <?php
 // Include footer
-include_once 'includes/footer.php';
+include_once '../includes/footer.php';
 ?>

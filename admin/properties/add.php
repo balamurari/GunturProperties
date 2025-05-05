@@ -35,11 +35,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $price = sanitize($_POST['price']);
     $address = sanitize($_POST['address']);
     $city = sanitize($_POST['city']);
-    $state = sanitize($_POST['state']);
+    $state = !empty($_POST['state']) ? sanitize($_POST['state']) : 'Andhra Pradesh';
     $zip_code = sanitize($_POST['zip_code']);
     $bedrooms = isset($_POST['bedrooms']) ? (int)$_POST['bedrooms'] : null;
     $bathrooms = isset($_POST['bathrooms']) ? (int)$_POST['bathrooms'] : null;
     $area = isset($_POST['area']) ? (float)$_POST['area'] : null;
+    $facing = sanitize($_POST['facing']);
     $area_unit = sanitize($_POST['area_unit'] ?? 'sq ft');
     $type_id = (int)$_POST['type_id'];
     $agent_id = !empty($_POST['agent_id']) ? (int)$_POST['agent_id'] : null;
@@ -67,13 +68,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'City is required';
     }
     
-    if (empty($state)) {
-        $errors[] = 'State is required';
-    }
+    // if (empty($state)) {
+    //     $errors[] = 'State is required';
+    // }
     
-    if (empty($zip_code)) {
-        $errors[] = 'ZIP code is required';
-    }
+    // if (empty($zip_code)) {
+    //     $errors[] = 'ZIP code is required';
+    // }
     
     if (!$type_id) {
         $errors[] = 'Property type is required';
@@ -87,9 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Insert property
             $db->query("INSERT INTO properties (title, description, price, address, city, state, zip_code, 
-                        bedrooms, bathrooms, area, area_unit, type_id, agent_id, featured, status) 
+                        bedrooms, bathrooms,facing, area, area_unit, type_id, agent_id, featured, status) 
                         VALUES (:title, :description, :price, :address, :city, :state, :zip_code, 
-                        :bedrooms, :bathrooms, :area, :area_unit, :type_id, :agent_id, :featured, :status)");
+                        :bedrooms, :bathrooms, :facing, :area, :area_unit, :type_id, :agent_id, :featured, :status)");
             
             $db->bind(':title', $title);
             $db->bind(':description', $description);
@@ -100,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->bind(':zip_code', $zip_code);
             $db->bind(':bedrooms', $bedrooms);
             $db->bind(':bathrooms', $bathrooms);
+            $db->bind(':facing', $facing);
             $db->bind(':area', $area);
             $db->bind(':area_unit', $area_unit);
             $db->bind(':type_id', $type_id);
@@ -241,11 +243,21 @@ include_once '../includes/header.php';
             
             <div class="form-row">
                 <div class="form-group">
-                    <label for="price">Price <span class="required">*</span></label>
-                    <div class="input-with-icon">
-                        <i class="fas fa-rupee-sign"></i>
-                        <input type="number" id="price" name="price" step="0.01" min="0" required>
+                    <label for="price-display">Price <span class="required">*</span></label>
+                    <div class="price-input-container">
+                        <div class="input-with-icon">
+                            <i class="fas fa-rupee-sign"></i>
+                            <input type="text" id="price-display" required>
+                        </div>
+                        <select id="price-denomination">
+                            <option value="1">Exact Amount</option>
+                            <option value="100000" selected>Lakhs</option>
+                            <option value="10000000">Crores</option>
+                        </select>
+                        <!-- Hidden field to store actual price in rupees -->
+                        <input type="hidden" id="price" name="price">
                     </div>
+                    <small class="price-helper-text">Enter amount: <span id="price-preview">₹0</span></small>
                 </div>
                 
                 <div class="form-group">
@@ -284,7 +296,10 @@ include_once '../includes/header.php';
                     <label for="bathrooms">Bathrooms</label>
                     <input type="number" id="bathrooms" name="bathrooms" min="0" step="0.5">
                 </div>
-                
+                <div class="form-group">
+                    <label for="facing">Facing<span class="required">*</span></label>
+                    <input type="text" id="facing" name="facing" required>
+                </div>
                 <div class="form-group">
                     <label for="area">Area</label>
                     <input type="number" id="area" name="area" min="0" step="0.01">
@@ -312,17 +327,17 @@ include_once '../includes/header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label for="city">City <span class="required">*</span></label>
-                    <input type="text" id="city" name="city" required>
+                    <input type="text" id="city" name="city" placeholder="Eg: Guntur/Amaravathi" required>
                 </div>
                 
                 <div class="form-group">
-                    <label for="state">State <span class="required">*</span></label>
-                    <input type="text" id="state" name="state" required>
+                    <label for="state">State</label>
+                    <input type="text" id="state" placeholder="Default Value: Andhra Pradesh If left empty" name="state" >
                 </div>
                 
                 <div class="form-group">
-                    <label for="zip_code">ZIP Code <span class="required">*</span></label>
-                    <input type="text" id="zip_code" name="zip_code" required>
+                    <label for="zip_code">ZIP Code </label>
+                    <input type="text" id="zip_code" name="zip_code">
                 </div>
             </div>
             
@@ -397,6 +412,140 @@ include_once '../includes/header.php';
     </div>
 </div>
 
+<style>
+.current-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.current-image-item {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+.current-image-item .image-preview {
+    height: 150px;
+    overflow: hidden;
+}
+
+.current-image-item .image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.current-image-item .image-controls {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    background-color: #f5f5f5;
+}
+
+.delete-label {
+    color: var(--error-color);
+}
+
+.primary-label {
+    color: var(--primary-color);
+}
+
+.features-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.feature-item {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+}
+
+.feature-value {
+    margin-top: 5px;
+}
+
+.image-upload-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.image-upload-slot {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    text-align: center;
+}
+
+.image-upload-slot input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.image-preview {
+    width: 100%;
+    height: 150px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-upload-instruction {
+    margin: 15px 0;
+}
+
+/* Additional styles for price input */
+.price-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.price-input-container .input-with-icon {
+    flex: 1;
+}
+
+.price-input-container select {
+    width: auto;
+}
+
+.price-helper-text {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+#price-preview {
+    font-weight: bold;
+}
+
+.image-controls {
+    margin-top: 8px;
+    text-align: center;
+}
+</style>
+
 <script>
 // Feature checkboxes toggle
 document.querySelectorAll('.feature-checkbox').forEach(function(checkbox) {
@@ -430,6 +579,63 @@ document.querySelectorAll('.image-input').forEach(function(input) {
             
             reader.readAsDataURL(this.files[0]);
         }
+    });
+});
+</script>
+<script>
+    // Price input handling for Indian currency format
+document.addEventListener('DOMContentLoaded', function() {
+    const priceDisplay = document.getElementById('price-display');
+    const priceDenomination = document.getElementById('price-denomination');
+    const actualPrice = document.getElementById('price');
+    const pricePreview = document.getElementById('price-preview');
+    
+    // Format number with commas (Indian format: 1,23,45,678)
+    function formatIndianPrice(num) {
+        num = num.toString();
+        let afterPoint = '';
+        if(num.indexOf('.') > 0) {
+            afterPoint = num.substring(num.indexOf('.'), num.length);
+            num = parseInt(num);
+            num = num.toString();
+        }
+        let lastThree = num.substring(num.length-3);
+        let otherNumbers = num.substring(0, num.length-3);
+        if(otherNumbers != '')
+            lastThree = ',' + lastThree;
+        let formattedNumber = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree + afterPoint;
+        
+        return formattedNumber;
+    }
+    
+    function updateActualPrice() {
+        const displayValue = parseFloat(priceDisplay.value) || 0;
+        const multiplier = parseFloat(priceDenomination.value);
+        const calculatedPrice = displayValue * multiplier;
+        
+        // Update hidden price field with calculated value
+        actualPrice.value = calculatedPrice.toFixed(2);
+        
+        // Update preview text
+        if (priceDenomination.value === '100000') {
+            pricePreview.textContent = '₹' + formatIndianPrice(calculatedPrice.toFixed(2)) + ' (' + priceDisplay.value + ' Lakhs)';
+        } else if (priceDenomination.value === '10000000') {
+            pricePreview.textContent = '₹' + formatIndianPrice(calculatedPrice.toFixed(2)) + ' (' + priceDisplay.value + ' Crores)';
+        } else {
+            pricePreview.textContent = '₹' + formatIndianPrice(calculatedPrice.toFixed(2));
+        }
+    }
+    
+    // Add event listeners
+    priceDisplay.addEventListener('input', updateActualPrice);
+    priceDenomination.addEventListener('change', updateActualPrice);
+    
+    // Initialize with default values
+    updateActualPrice();
+    
+    // Before form submission, ensure the hidden price field has the correct value
+    document.querySelector('form').addEventListener('submit', function(e) {
+        updateActualPrice();
     });
 });
 </script>

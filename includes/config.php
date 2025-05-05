@@ -4,6 +4,7 @@
  * Contains database credentials and site configuration
  */
 
+
 // Database credentials for localhost
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');        

@@ -111,9 +111,9 @@ include_once '../includes/header.php';
                             <td colspan="6" class="text-center">No admin users found.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($users as $user): ?>
+                        <?php $i=1; foreach ($users as $user): ?>
                             <tr>
-                                <td><?php echo $user['id']; ?></td>
+                                <td><?php echo $i; $i++; ?></td>
                                 <td class="table-user">
                                     <img src="<?php echo !empty($user['profile_pic']) ? '../../' . $user['profile_pic'] : '../../assets/images/default-profile.jpg'; ?>" alt="<?php echo htmlspecialchars($user['name']); ?>">
                                     <?php echo htmlspecialchars($user['name']); ?>

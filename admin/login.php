@@ -12,12 +12,12 @@ $email = '';
 $error = '';
 
 // Default admin credentials
-$default_email = 'admin@gunturproperties.com';
-$default_password = 'admin123';
+// $default_email = 'admin@gunturproperties.com';
+// $default_password = 'admin123';
 
 // Check if user is already logged in
 if (isLoggedIn()) {
-    redirect('dashboard.php');
+    redirect('dashboard/dashboard.php');
 }
 
 // Handle login form submission
@@ -30,17 +30,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Please enter both email and password';
     } else {
         // Check if default credentials are used
-        if ($email === $default_email && $password === $default_password) {
-            // Set session variables for default admin
-            $_SESSION['user_id'] = 1;
-            $_SESSION['user_name'] = 'Admin';
-            $_SESSION['user_email'] = $default_email;
-            $_SESSION['user_role'] = 'admin';
+        // if ($email === $default_email && $password === $default_password) {
+        //     // Set session variables for default admin
+        //     $_SESSION['user_id'] = 1;
+        //     $_SESSION['user_name'] = 'Admin';
+        //     $_SESSION['user_email'] = $default_email;
+        //     $_SESSION['user_role'] = 'admin';
             
-            // Redirect to dashboard
-            setFlashMessage('success', 'Login successful! Welcome back, Admin.');
-            redirect('dashboard.php');
-        } else {
+        //     // Redirect to dashboard
+        //     setFlashMessage('success', 'Login successful! Welcome back, Admin.');
+        //     redirect('dashboard/dashboard.php');
+        // } else {
             // Check if user exists in database
             $db = new Database();
             $db->query("SELECT * FROM users WHERE email = :email AND status = 1");
@@ -56,11 +56,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Redirect to dashboard
                 setFlashMessage('success', 'Login successful! Welcome back, ' . $user['name'] . '.');
-                redirect('dashboard.php');
+                redirect('dashboard/dashboard.php');
             } else {
                 $error = 'Invalid email or password';
             }
-        }
+        // }
     }
 }
 ?>
@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
             
             <div class="login-footer">
-                <p><small>Default login: admin@gunturproperties.com / admin123</small></p>
+                <!-- <p><small>Default login: admin@gunturproperties.com / admin123</small></p> -->
                 <p>Back to <a href="../index.php">Main Website</a></p>
             </div>
         </div>

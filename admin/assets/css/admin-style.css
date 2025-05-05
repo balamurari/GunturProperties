@@ -862,3 +862,239 @@ tr:hover {
 
 
 
+.price-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.price-input-container .input-with-icon {
+    flex: 1;
+}
+
+.price-input-container select {
+    width: auto;
+}
+
+.price-helper-text {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.9em;
+}
+
+#price-preview {
+    font-weight: bold;
+}
+
+
+/**
+ * Guntur Properties Admin Panel Stylesheet - Key Changes Only
+ * These changes need to be added to admin-style.css
+ */
+
+/* Add proper responsive behavior to the sidebar */
+@media (max-width: 991px) {
+    .sidebar {
+        transform: translateX(-100%); /* Change this */
+        transition: transform 0.3s ease; /* Use transform instead of left for better performance */
+    }
+    
+    body.sidebar-open .sidebar {
+        transform: translateX(0); /* Change this */
+    }
+    
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .sidebar-toggle {
+        display: block;
+    }
+}
+
+/* Reset the default sidebar behavior in admin-style.css */
+.sidebar {
+    width: 250px;
+    background-color: white;
+    border-right: 1px solid var(--border-color);
+    position: fixed;
+    height: 100%;
+    z-index: 1000;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease; /* Add this for smooth transitions */
+    overflow-y: auto; /* Ensure scrolling for tall sidebars */
+}
+
+/* Fix responsive tables */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Fix mobile toggle button */
+.mobile-menu-toggle {
+    display: none; /* Hide by default */
+}
+
+@media (max-width: 991px) {
+    .mobile-menu-toggle {
+        display: flex; /* Show on mobile */
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1001;
+        background-color: var(--primary-color);
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        border: none;
+    }
+    
+    /* Adjust header for mobile toggle */
+    .dashboard-header {
+        margin-left: 50px;
+        padding-left: 10px;
+    }
+}
+
+/* Ensure overlay works properly */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+
+body.sidebar-open .sidebar-overlay {
+    display: block;
+}
+
+/* Fix sidebar close button */
+.sidebar-close {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    .sidebar-close {
+        display: block;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: transparent;
+        border: none;
+        color: var(--text-color);
+        font-size: 20px;
+        cursor: pointer;
+    }
+}
+
+
+
+
+/**
+ * These are the key changes needed in admin-style.css
+ * Add or replace these selectors within your existing file
+ */
+
+/* Updated sidebar styles for responsive behavior */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    background-color: white;
+    border-right: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease; /* Use transform instead of left */
+    overflow-y: auto; /* Ensure tall sidebars can scroll */
+}
+
+/* Remove any conflicting media queries from admin-style.css */
+/* Remove or comment out these lines in admin-style.css:
+@media (max-width: 992px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .sidebar-toggle {
+        display: block;
+    }
+}
+*/
+
+/* Ensure the sidebar close button styles are properly defined */
+.sidebar-close {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--text-color);
+    cursor: pointer;
+    position: absolute;
+    top: 15px;
+    right: 15px;
+}
+
+/* Mobile menu toggle button */
+.mobile-menu-toggle {
+    display: none;
+}
+
+/* The overlay for the sidebar on mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+
+/* Add styles for responsive tables */
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+}
+
+/* Add this style to target all tables */
+table {
+    width: 100%;
+}
+
+/* Make sure dropdown menus are properly styled */
+.user-dropdown-menu {
+    display: none;
+}
+
+.user-dropdown-menu.show {
+    display: block;
+}

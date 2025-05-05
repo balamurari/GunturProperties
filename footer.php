@@ -1,18 +1,4 @@
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Guntur Properties - Find Your Dream Home</title>
-    <link rel="stylesheet" href="assets/css/style.css" />
-    <link rel="stylesheet" href="assets/css/responsive.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
+
 
 <footer>
       <div class="container">
@@ -76,4 +62,10 @@
           </div>
         </div>
       </div>
-</footer>
+
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+  </body>
+</html>
+

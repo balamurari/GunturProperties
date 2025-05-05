@@ -66,7 +66,7 @@ include_once '../includes/header.php';
         <div class="card-header-actions">
             <h2 class="mb-0">Inquiry #<?php echo $inquiry['id']; ?></h2>
             <a href="index.php" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i> Back to Inquiries
+                <i class="fas fa-arrow-left"></i> Back to Enquiries
             </a>
         </div>
     </div>

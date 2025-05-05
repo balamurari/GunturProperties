@@ -221,7 +221,7 @@ include_once '../includes/header.php';
                         <th>Title</th>
                         <th>Type</th>
                         <th>Price</th>
-                        <th>Location</th>
+                        <th>Address</th>
                         <th>Agent</th>
                         <th>Status</th>
                         <th>Featured</th>
@@ -234,9 +234,10 @@ include_once '../includes/header.php';
                             <td colspan="10" class="text-center">No properties found.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($properties as $property): ?>
+                        <?php $i=1;
+                         foreach ($properties as $property): ?>
                             <tr>
-                                <td><?php echo $property['id']; ?></td>
+                                <td><?php echo $i; $i++; ?></td>
                                 <td class="table-image">
                                     <?php
                                     // Get primary image
@@ -250,7 +251,7 @@ include_once '../includes/header.php';
                                 <td><?php echo htmlspecialchars($property['title']); ?></td>
                                 <td><?php echo htmlspecialchars($property['type_name']); ?></td>
                                 <td><?php echo formatPrice($property['price']); ?></td>
-                                <td><?php echo htmlspecialchars($property['city'] . ', ' . $property['state']); ?></td>
+                                <td><?php echo htmlspecialchars($property['address']); ?></td>
                                 <td><?php echo htmlspecialchars($property['agent_name'] ?: 'Not Assigned'); ?></td>
                                 <td>
                                     <span class="status-badge status-<?php echo $property['status']; ?>">
@@ -264,16 +265,16 @@ include_once '../includes/header.php';
                                         <i class="far fa-star"></i>
                                     <?php endif; ?>
                                 </td>
-                                <td class="table-actions">
-                                    <a href="edit.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-primary">
+                                <td class="table-actions ">
+                                    <a href="edit.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-primary mb-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <a href="?delete=<?php echo $property['id']; ?>" class="btn btn-sm btn-danger confirm-action" data-confirm="Are you sure you want to delete this property? This action cannot be undone.">
                                         <i class="fas fa-trash"></i>
                                     </a>
-                                    <a href="../property-detail.php?id=<?php echo $property['id']; ?>" target="_blank" class="btn btn-sm btn-secondary">
+                                    <!-- <a href="../property-detail.php?id=<?php echo $property['id']; ?>" target="_blank" class="btn btn-sm btn-secondary">
                                         <i class="fas fa-eye"></i>
-                                    </a>
+                                    </a> -->
                                 </td>
                             </tr>
                         <?php endforeach; ?>

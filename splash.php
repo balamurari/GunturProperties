@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Guntur Properties Animated Logo</title>
+    <meta http-equiv="refresh" content="7;url=index.php">
+
+    <title>Guntur Properties Welcome Page</title>
     <style>
         * {
             margin: 0;

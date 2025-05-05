@@ -1,4 +1,6 @@
-<head>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Guntur Properties - Find Your Dream Home</title>
@@ -13,8 +15,13 @@
       rel="stylesheet"
     />
   </head>
-
-<header>
+  <?php
+// Get the current page filename
+$current_page = basename($_SERVER['PHP_SELF']);
+?>
+  <body>
+    <!-- Header Section -->
+    <header>
       <div class="container">
         <div class="logo-icon">
           <div class="animated-element">
@@ -32,26 +39,29 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="logo">
-          <a href="index.html">
+          <div class="logo">
+          <a href="index.php">
             <h1>Guntur Properties</h1>
           </a>
         </div>
+        </div>
+        
+        
         <nav>
-          <ul>
-            <li><a href="index.html" class="active">Home</a></li>
-            <li><a href="properties.html">Properties</a></li>
-            <li><a href="agents.html">Agents</a></li>
-            <li><a href="about-us.html">About Us</a></li>
-          </ul>
+        <ul>
+            <li><a href="index.php" class="<?php echo ($current_page == 'index.php') ? 'active' : ''; ?>">Home</a></li>
+            <li><a href="properties.php" class="<?php echo ($current_page == 'properties.php') ? 'active' : ''; ?>">Properties</a></li>
+            <li><a href="agents.php" class="<?php echo ($current_page == 'agents.php') ? 'active' : ''; ?>">Agents</a></li>
+            <li><a href="about-us.php" class="<?php echo ($current_page == 'about-us.php') ? 'active' : ''; ?>">About Us</a></li>
+        </ul>
         </nav>
         <div class="contact-btn">
-          <a href="contact-us.html" class="btn btn-primary">Contact Us</a>
+          <a href="contact-us.php" class="btn btn-primary">Contact Us</a>
+          <a href="admin" class="btn btn-primary">Agent Login</a>
         </div>
         <!-- Updated mobile toggle button -->
         <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">
           <i class="fas fa-bars"></i>
         </button>
       </div>
-</header>
+    </header>

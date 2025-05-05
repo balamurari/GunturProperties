@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bedrooms = isset($_POST['bedrooms']) ? (int)$_POST['bedrooms'] : null;
     $bathrooms = isset($_POST['bathrooms']) ? (int)$_POST['bathrooms'] : null;
     $area = isset($_POST['area']) ? (float)$_POST['area'] : null;
+    $facing = sanitize($_POST['facing']);
     $area_unit = sanitize($_POST['area_unit'] ?? 'sq ft');
     $type_id = (int)$_POST['type_id'];
     $agent_id = !empty($_POST['agent_id']) ? (int)$_POST['agent_id'] : null;
@@ -94,13 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'City is required';
     }
     
-    if (empty($state)) {
-        $errors[] = 'State is required';
-    }
+    // if (empty($state)) {
+    //     $errors[] = 'State is required';
+    // }
     
-    if (empty($zip_code)) {
-        $errors[] = 'ZIP code is required';
-    }
+    // if (empty($zip_code)) {
+    //     $errors[] = 'ZIP code is required';
+    // }
     
     if (!$type_id) {
         $errors[] = 'Property type is required';
@@ -122,7 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         state = :state, 
                         zip_code = :zip_code, 
                         bedrooms = :bedrooms, 
-                        bathrooms = :bathrooms, 
+                        bathrooms = :bathrooms,
+                         facing = :facing,
                         area = :area, 
                         area_unit = :area_unit, 
                         type_id = :type_id, 
@@ -141,6 +143,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->bind(':zip_code', $zip_code);
             $db->bind(':bedrooms', $bedrooms);
             $db->bind(':bathrooms', $bathrooms);
+            $db->bind(':address', $address);
+            $db->bind(':facing', $facing);
+
             $db->bind(':area', $area);
             $db->bind(':area_unit', $area_unit);
             $db->bind(':type_id', $type_id);
@@ -229,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     if ($image) {
                         // Delete image file
-                        $image_path = $_SERVER['DOCUMENT_ROOT'] . '/guntur-properties/' . $image['image_path'];
+                        $image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $image['image_path'];
                         if (file_exists($image_path)) {
                             unlink($image_path);
                         }
@@ -378,6 +383,10 @@ include_once '../includes/header.php';
                     <label for="bathrooms">Bathrooms</label>
                     <input type="number" id="bathrooms" name="bathrooms" min="0" step="0.5" value="<?php echo $property['bathrooms']; ?>">
                 </div>
+                <div class="form-group">
+                    <label for="facing">Facing <span class="required">*</span></label>
+                    <input type="text" id="facing" name="facing" value="<?php echo htmlspecialchars($property['facing']); ?>" required>
+                </div>
                 
                 <div class="form-group">
                     <label for="area">Area</label>
@@ -410,13 +419,13 @@ include_once '../includes/header.php';
                 </div>
                 
                 <div class="form-group">
-                    <label for="state">State <span class="required">*</span></label>
-                    <input type="text" id="state" name="state" value="<?php echo htmlspecialchars($property['state']); ?>" required>
+                    <label for="state">State </label>
+                    <input type="text" id="state" name="state" value="<?php echo htmlspecialchars($property['state']); ?>" >
                 </div>
                 
                 <div class="form-group">
-                    <label for="zip_code">ZIP Code <span class="required">*</span></label>
-                    <input type="text" id="zip_code" name="zip_code" value="<?php echo htmlspecialchars($property['zip_code']); ?>" required>
+                    <label for="zip_code">ZIP Code </label>
+                    <input type="text" id="zip_code" name="zip_code" value="<?php echo htmlspecialchars($property['zip_code']); ?>" >
                 </div>
             </div>
             

@@ -3,8 +3,8 @@
  * Admin Logout Page
  * Logs out the user and redirects to login page
  */
-require_once 'includes/config.php';
-require_once 'includes/functions.php';
+require_once '../includes/config.php';
+require_once '../includes/functions.php';
 
 // Check if user is logged in
 if (isLoggedIn()) {
@@ -23,5 +23,5 @@ if (isLoggedIn()) {
 }
 
 // Redirect to login page
-redirect('login.php');
+redirect('../login.php');
 ?>

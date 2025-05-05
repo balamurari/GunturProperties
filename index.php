@@ -1,64 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Guntur Properties - Find Your Dream Home</title>
-    <link rel="stylesheet" href="assets/css/style.css" />
-    <link rel="stylesheet" href="assets/css/responsive.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <!-- Header Section -->
-    <header>
-      <div class="container">
-        <div class="logo-icon">
-          <div class="animated-element">
-            <div class="building-animation">
-              <div class="floor floor-1"></div>
-              <div class="floor floor-2"></div>
-              <div class="floor floor-3"></div>
-              <div class="floor floor-4"></div>
-              <div class="floor floor-5"></div>
-              <div class="roof"></div>
-              <div class="crane">
-                <div class="crane-base"></div>
-                <div class="crane-arm"></div>
-                <div class="crane-line"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="logo">
-          <a href="index.html">
-            <h1>Guntur Properties</h1>
-          </a>
-        </div>
-        <nav>
-          <ul>
-            <li><a href="index.html" class="active">Home</a></li>
-            <li><a href="properties.html">Properties</a></li>
-            <li><a href="agents.html">Agents</a></li>
-            <li><a href="about-us.html">About Us</a></li>
-          </ul>
-        </nav>
-        <div class="contact-btn">
-          <a href="contact-us.html" class="btn btn-primary">Contact Us</a>
-        </div>
-        <!-- Updated mobile toggle button -->
-        <button class="mobile-menu-toggle" aria-label="Toggle mobile menu">
-          <i class="fas fa-bars"></i>
-        </button>
-      </div>
-    </header>
 
+<?php include 'header.php'?>
     <!-- Hero Section -->
     <section class="hero-section">
       <!-- Optional shooting star effect -->
@@ -113,7 +54,7 @@
             </p>
             <div class="hero-btns">
               <a href="#" class="btn btn-outline">Learn more</a>
-              <a href="properties.html" class="btn btn-primary"
+              <a href="properties.php" class="btn btn-primary"
                 >Explore properties</a
               >
             </div>
@@ -268,7 +209,7 @@
           </p>
         </div>
         <div class="view-all">
-          <a href="properties.html" class="btn btn-outline"
+          <a href="properties.php" class="btn btn-outline"
             >View All Properties</a
           >
         </div>
@@ -359,72 +300,4 @@
         </div>
       </div>
     </section>
-
-    <!-- Footer -->
-    <footer>
-      <div class="container">
-        <div class="footer-content">
-          <div class="footer-company">
-            <h3>Guntur Properties</h3>
-            <div class="footer-search">
-              <input type="text" placeholder="Search..." />
-              <button><i class="fas fa-paper-plane"></i></button>
-            </div>
-          </div>
-
-          <div class="footer-links">
-            <div class="footer-column">
-              <h4>About Us</h4>
-              <ul>
-                <li><a href="#">Our story</a></li>
-                <li><a href="#">Our work</a></li>
-                <li><a href="#">Our clients</a></li>
-                <li><a href="#">How it works</a></li>
-              </ul>
-            </div>
-
-            <div class="footer-column">
-              <h4>Properties</h4>
-              <ul>
-                <li><a href="#">Portfolio</a></li>
-                <li><a href="#">Categories</a></li>
-                <li><a href="#">Property management</a></li>
-              </ul>
-            </div>
-
-            <div class="footer-column">
-              <h4>Services</h4>
-              <ul>
-                <li><a href="#">Strategic marketing</a></li>
-                <li><a href="#">Negotiation</a></li>
-                <li><a href="#">Closing success</a></li>
-              </ul>
-            </div>
-
-            <div class="footer-column">
-              <h4>Contact Us</h4>
-              <ul>
-                <li><a href="#">Contact form</a></li>
-                <li><a href="#">Our offices</a></li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="footer-bottom">
-          <div class="copyright">
-            <p>©2025 Guntur Properties. All Rights Reserved.</p>
-            <a href="#">Terms & Conditions</a>
-          </div>
-          <div class="social-links">
-            <a href="#"><i class="fab fa-instagram"></i></a>
-            <a href="#"><i class="fab fa-linkedin"></i></a>
-            <a href="#"><i class="fab fa-youtube"></i></a>
-          </div>
-        </div>
-      </div>
-    </footer>
-
-    <script src="assets/js/script.js"></script>
-  </body>
-</html>
+<?php include 'footer.php'?>

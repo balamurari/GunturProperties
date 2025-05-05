@@ -1,26 +1,45 @@
 /**
- * Guntur Properties Admin Panel JavaScript
+ * Guntur Properties Admin Panel - Combined JavaScript
+ * This file combines all necessary JavaScript functionality for the admin panel
  */
 
 document.addEventListener('DOMContentLoaded', function() {
     /**
      * Mobile Sidebar Toggle
      */
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.querySelector('.sidebar-overlay');
+    const sidebarCloseBtn = document.querySelector('.sidebar-close');
     
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('show');
-        });
-        
-        // Close sidebar when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!sidebar.contains(event.target) && !sidebarToggle.contains(event.target)) {
-                sidebar.classList.remove('show');
-            }
+    // Mobile menu toggle click event
+    if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.body.classList.toggle('sidebar-open');
         });
     }
+    
+    // Sidebar overlay click event (close sidebar when clicking overlay)
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', function() {
+            document.body.classList.remove('sidebar-open');
+        });
+    }
+    
+    // Sidebar close button click event
+    if (sidebarCloseBtn) {
+        sidebarCloseBtn.addEventListener('click', function() {
+            document.body.classList.remove('sidebar-open');
+        });
+    }
+    
+    // Close sidebar on window resize (if viewport becomes large enough)
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 992) {
+            document.body.classList.remove('sidebar-open');
+        }
+    });
     
     /**
      * User Dropdown Menu
@@ -35,8 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Close dropdown when clicking outside
-        document.addEventListener('click', function() {
-            userDropdownMenu.classList.remove('show');
+        document.addEventListener('click', function(event) {
+            if (!userDropdownToggle.contains(event.target)) {
+                userDropdownMenu.classList.remove('show');
+            }
         });
     }
     
@@ -56,6 +77,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
+    /**
+     * Make tables responsive
+     */
+    const tables = document.querySelectorAll('table');
+    
+    tables.forEach(function(table) {
+        // Check if table is not already in a responsive container
+        if (!table.closest('.table-responsive') && !table.closest('.table-container')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-responsive';
+            table.parentNode.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+        }
+    });
     
     /**
      * Image Preview
@@ -112,4 +148,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
+    // Log confirmation of script loading
+    console.log('Admin panel JavaScript initialized');
 });
