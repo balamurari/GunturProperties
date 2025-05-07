@@ -115,11 +115,22 @@ include_once '../includes/header.php';
                             <tr>
                                 <td><?php echo $i; $i++; ?></td>
                                 <td class="table-user">
-                                    <img src="<?php echo !empty($user['profile_pic']) ? '../../' . $user['profile_pic'] : '../../assets/images/default-profile.jpg'; ?>" alt="<?php echo htmlspecialchars($user['name']); ?>">
-                                    <?php echo htmlspecialchars($user['name']); ?>
-                                    <?php if ($user['id'] == $_SESSION['user_id']): ?>
-                                        <span class="current-user-badge">You</span>
-                                    <?php endif; ?>
+                                    <?php
+                                    $profile_pic_url = !empty($user['profile_pic']) 
+                                        ? '../../' . $user['profile_pic'] 
+                                        : '../../assets/images/default-profile.jpg';
+                                    ?>
+                                    <div class="user-info">
+                                        <img src="<?php echo $profile_pic_url; ?>" 
+                                            alt="<?php echo htmlspecialchars($user['name']); ?>" 
+                                            class="fixed-size-image user-image">
+                                        <span class="user-name">
+                                            <?php echo htmlspecialchars($user['name']); ?>
+                                            <?php if ($user['id'] == $_SESSION['user_id']): ?>
+                                                <span class="current-user-badge">You</span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td><?php echo htmlspecialchars($user['email']); ?></td>
                                 <td>

@@ -10,6 +10,15 @@ require_once '../includes/functions.php';
 // Set page title
 $page_title = 'Add New Property';
 
+// Enable better debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// Debug function
+function debug_log($message) {
+    error_log('[PROPERTY DEBUG] ' . $message);
+}
+
 // Get database connection
 $db = new Database();
 
@@ -24,28 +33,99 @@ $agents = getAgents();
 $db->query("SELECT * FROM property_features ORDER BY name ASC");
 $features = $db->resultSet();
 
+// Ensure upload directories exist and are writable
+foreach ([PROPERTY_IMG_PATH, AGENT_IMG_PATH] as $path) {
+    if (!file_exists($path)) {
+        // Try to create the directory if it doesn't exist
+        if (!mkdir($path, 0755, true)) {
+            die("Failed to create directory: " . $path . ". Please create it manually with proper permissions.");
+        }
+    }
+    
+    if (!is_writable($path)) {
+        die("Directory not writable: " . $path . ". Please check file permissions.");
+    }
+}
+
 // Handle form submission
 $errors = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    debug_log("Form submitted: " . print_r($_POST, true));
+    
     // Sanitize and validate inputs
     $title = sanitize($_POST['title']);
     $description = sanitize($_POST['description']);
-    $price = sanitize($_POST['price']);
+    $price = isset($_POST['price']) ? (float)$_POST['price'] : 0;
     $address = sanitize($_POST['address']);
     $city = sanitize($_POST['city']);
     $state = !empty($_POST['state']) ? sanitize($_POST['state']) : 'Andhra Pradesh';
     $zip_code = sanitize($_POST['zip_code']);
-    $bedrooms = isset($_POST['bedrooms']) ? (int)$_POST['bedrooms'] : null;
-    $bathrooms = isset($_POST['bathrooms']) ? (int)$_POST['bathrooms'] : null;
-    $area = isset($_POST['area']) ? (float)$_POST['area'] : null;
-    $facing = sanitize($_POST['facing']);
-    $area_unit = sanitize($_POST['area_unit'] ?? 'sq ft');
     $type_id = (int)$_POST['type_id'];
-    $agent_id = !empty($_POST['agent_id']) ? (int)$_POST['agent_id'] : null;
     $featured = isset($_POST['featured']) ? 1 : 0;
     $status = sanitize($_POST['status']);
+    
+    // Optional fields - careful NULL handling
+    // Bedrooms
+    if (isset($_POST['bedrooms']) && $_POST['bedrooms'] !== '') {
+        $bedrooms = (int)$_POST['bedrooms'];
+        debug_log("Bedrooms set to: $bedrooms");
+    } else {
+        $bedrooms = null;
+        debug_log("Bedrooms set to NULL");
+    }
+    
+    // Bathrooms
+    if (isset($_POST['bathrooms']) && $_POST['bathrooms'] !== '') {
+        $bathrooms = (float)$_POST['bathrooms'];
+        debug_log("Bathrooms set to: $bathrooms");
+    } else {
+        $bathrooms = null;
+        debug_log("Bathrooms set to NULL");
+    }
+    
+    // Facing
+    if (isset($_POST['facing']) && !empty($_POST['facing'])) {
+        $facing = sanitize($_POST['facing']);
+        debug_log("Facing set to: $facing");
+    } else {
+        $facing = null;
+        debug_log("Facing set to NULL");
+    }
+    
+    // Area
+    if (isset($_POST['area']) && $_POST['area'] !== '') {
+        $area = (float)$_POST['area'];
+        debug_log("Area set to: $area");
+    } else {
+        $area = null;
+        debug_log("Area set to NULL");
+    }
+    
+    // Area Unit
+    $area_unit = !empty($_POST['area_unit']) ? sanitize($_POST['area_unit']) : 'sq ft';
+    debug_log("Area unit set to: $area_unit");
+    
+    // Agent ID - special handling
+    if (!empty($_POST['agent_id'])) {
+        $agent_id = (int)$_POST['agent_id'];
+        
+        // Verify agent exists
+        $db->query("SELECT id FROM agents WHERE id = :id");
+        $db->bind(':id', $agent_id);
+        $agent_exists = $db->single();
+        
+        if ($agent_exists) {
+            debug_log("Agent ID set to: $agent_id");
+        } else {
+            $agent_id = null;
+            debug_log("Agent ID set to NULL (agent not found)");
+        }
+    } else {
+        $agent_id = null;
+        debug_log("Agent ID set to NULL (empty selection)");
+    }
     
     // Validate required fields
     if (empty($title)) {
@@ -68,14 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'City is required';
     }
     
-    // if (empty($state)) {
-    //     $errors[] = 'State is required';
-    // }
-    
-    // if (empty($zip_code)) {
-    //     $errors[] = 'ZIP code is required';
-    // }
-    
     if (!$type_id) {
         $errors[] = 'Property type is required';
     }
@@ -86,12 +158,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Start transaction
             $db->beginTransaction();
             
-            // Insert property
-            $db->query("INSERT INTO properties (title, description, price, address, city, state, zip_code, 
-                        bedrooms, bathrooms,facing, area, area_unit, type_id, agent_id, featured, status) 
-                        VALUES (:title, :description, :price, :address, :city, :state, :zip_code, 
-                        :bedrooms, :bathrooms, :facing, :area, :area_unit, :type_id, :agent_id, :featured, :status)");
+            // Improved query construction with NULL handling
+            $query = "INSERT INTO properties (
+                title, description, price, address, city, state, zip_code, 
+                bedrooms, bathrooms, facing, area, area_unit, type_id,
+                " . ($agent_id === null ? "" : "agent_id, ") . "
+                featured, status
+            ) VALUES (
+                :title, :description, :price, :address, :city, :state, :zip_code,
+                " . ($bedrooms === null ? "NULL" : ":bedrooms") . ",
+                " . ($bathrooms === null ? "NULL" : ":bathrooms") . ",
+                " . ($facing === null ? "NULL" : ":facing") . ",
+                " . ($area === null ? "NULL" : ":area") . ",
+                :area_unit, :type_id,
+                " . ($agent_id === null ? "" : ":agent_id, ") . "
+                :featured, :status
+            )";
             
+            debug_log("SQL Query: " . $query);
+            
+            $db->query($query);
+            
+            // Bind required parameters
             $db->bind(':title', $title);
             $db->bind(':description', $description);
             $db->bind(':price', $price);
@@ -99,22 +187,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->bind(':city', $city);
             $db->bind(':state', $state);
             $db->bind(':zip_code', $zip_code);
-            $db->bind(':bedrooms', $bedrooms);
-            $db->bind(':bathrooms', $bathrooms);
-            $db->bind(':facing', $facing);
-            $db->bind(':area', $area);
             $db->bind(':area_unit', $area_unit);
             $db->bind(':type_id', $type_id);
-            $db->bind(':agent_id', $agent_id);
             $db->bind(':featured', $featured);
             $db->bind(':status', $status);
             
-            $db->execute();
+            // Selectively bind optional parameters
+            if ($bedrooms !== null) {
+                $db->bind(':bedrooms', $bedrooms);
+                debug_log("Binding bedrooms: $bedrooms");
+            }
             
+            if ($bathrooms !== null) {
+                $db->bind(':bathrooms', $bathrooms);
+                debug_log("Binding bathrooms: $bathrooms");
+            }
+            
+            if ($facing !== null) {
+                $db->bind(':facing', $facing);
+                debug_log("Binding facing: $facing");
+            }
+            
+            if ($area !== null) {
+                $db->bind(':area', $area);
+                debug_log("Binding area: $area");
+            }
+            
+            if ($agent_id !== null) {
+                $db->bind(':agent_id', $agent_id);
+                debug_log("Binding agent_id: $agent_id");
+            }
+            
+            // Execute the query
+            $result = $db->execute();
+            
+            if (!$result) {
+                throw new Exception("Failed to insert property into database");
+            }
+            
+            // Get the newly inserted property ID
             $property_id = $db->lastInsertId();
+            debug_log("Property inserted with ID: $property_id");
+            
+            // Handle property features
+            if (!empty($_POST['features'])) {
+                foreach ($_POST['features'] as $feature_id => $value) {
+                    if (empty($value)) {
+                        $value = "Yes"; // Default value if checkbox is checked but no text entered
+                    }
+                    
+                    $db->query("INSERT INTO property_feature_mapping (property_id, feature_id, value) 
+                              VALUES (:property_id, :feature_id, :value)");
+                    
+                    $db->bind(':property_id', $property_id);
+                    $db->bind(':feature_id', $feature_id);
+                    $db->bind(':value', $value);
+                    
+                    $db->execute();
+                }
+            }
             
             // Handle property images
             $has_primary = false;
+            $image_upload_error = false;
             
             if (!empty($_FILES['images']['name'][0])) {
                 foreach ($_FILES['images']['name'] as $key => $name) {
@@ -149,7 +284,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($upload_result) {
                         // Insert image
                         $db->query("INSERT INTO property_images (property_id, image_path, is_primary, sort_order) 
-                                   VALUES (:property_id, :image_path, :is_primary, :sort_order)");
+                                  VALUES (:property_id, :image_path, :is_primary, :sort_order)");
                         
                         $db->bind(':property_id', $property_id);
                         $db->bind(':image_path', $upload_result['path']);
@@ -157,38 +292,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $db->bind(':sort_order', $key);
                         
                         $db->execute();
+                    } else {
+                        debug_log("Failed to upload image: " . $name);
+                        $image_upload_error = true;
                     }
-                }
-            }
-            
-            // Handle property features
-            if (!empty($_POST['features'])) {
-                foreach ($_POST['features'] as $feature_id => $value) {
-                    if (empty($value)) {
-                        continue;
-                    }
-                    
-                    $db->query("INSERT INTO property_feature_mapping (property_id, feature_id, value) 
-                               VALUES (:property_id, :feature_id, :value)");
-                    
-                    $db->bind(':property_id', $property_id);
-                    $db->bind(':feature_id', $feature_id);
-                    $db->bind(':value', $value);
-                    
-                    $db->execute();
                 }
             }
             
             // Commit transaction
             $db->endTransaction();
+            debug_log("Transaction committed successfully");
             
-            $success = true;
-            setFlashMessage('success', 'Property added successfully!');
+            // Set success message and redirect
+            if ($image_upload_error) {
+                setFlashMessage('warning', 'Property added but some images could not be uploaded.');
+            } else {
+                setFlashMessage('success', 'Property added successfully!');
+            }
+            
             redirect('index.php');
             
         } catch (Exception $e) {
             // Rollback transaction on error
             $db->cancelTransaction();
+            debug_log("Error adding property: " . $e->getMessage());
             $errors[] = 'Error: ' . $e->getMessage();
         }
     }
@@ -275,7 +402,8 @@ include_once '../includes/header.php';
                     <select id="agent_id" name="agent_id">
                         <option value="">Select Agent</option>
                         <?php foreach ($agents as $agent): ?>
-                            <option value="<?php echo $agent['id']; ?>">
+                            <option value="<?php echo $agent['id']; ?>" 
+                                    <?php echo (isset($property['agent_id']) && $property['agent_id'] == $agent['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($agent['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -297,8 +425,8 @@ include_once '../includes/header.php';
                     <input type="number" id="bathrooms" name="bathrooms" min="0" step="0.5">
                 </div>
                 <div class="form-group">
-                    <label for="facing">Facing<span class="required">*</span></label>
-                    <input type="text" id="facing" name="facing" required>
+                    <label for="facing">Facing</label>
+                    <input type="text" id="facing" name="facing">
                 </div>
                 <div class="form-group">
                     <label for="area">Area</label>
@@ -336,7 +464,7 @@ include_once '../includes/header.php';
                 </div>
                 
                 <div class="form-group">
-                    <label for="zip_code">ZIP Code </label>
+                    <label for="zip_code">ZIP Code</label>
                     <input type="text" id="zip_code" name="zip_code">
                 </div>
             </div>
@@ -365,7 +493,7 @@ include_once '../includes/header.php';
                 </div>
                 
                 <div class="image-upload-grid" id="imageUploadGrid">
-                    <!-- Image upload slots will be added dynamically by JavaScript -->
+                    <!-- First two initial slots -->
                     <div class="image-upload-slot">
                         <input type="file" name="images[]" class="image-input" accept="image/jpeg, image/png, image/webp" data-preview="previewImage0">
                         <div class="image-preview">
@@ -392,7 +520,28 @@ include_once '../includes/header.php';
                         </div>
                     </div>
                     
-                    <!-- Add more empty slots as needed -->
+                    <!-- Additional 8 slots (initially hidden) -->
+                    <?php for($i = 2; $i < 10; $i++): ?>
+                    <div class="image-upload-slot empty hidden-slot">
+                        <input type="file" name="images[]" class="image-input" accept="image/jpeg, image/png, image/webp" data-preview="previewImage<?php echo $i; ?>">
+                        <div class="image-preview">
+                            <img id="previewImage<?php echo $i; ?>" src="../assets/images/upload-placeholder.jpg" alt="Preview">
+                        </div>
+                        <div class="image-controls">
+                            <label class="primary-label">
+                                <input type="radio" name="primary_image" value="<?php echo $i; ?>">
+                                Set as Primary
+                            </label>
+                        </div>
+                    </div>
+                    <?php endfor; ?>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-outline" id="addMoreImagesBtn">
+                        <i class="fas fa-plus"></i> Add More Images
+                    </button>
+                    <small class="d-block mt-2 text-muted">You can add up to 10 images total</small>
                 </div>
             </div>
             
@@ -544,6 +693,31 @@ include_once '../includes/header.php';
     margin-top: 8px;
     text-align: center;
 }
+
+/* New styles for the multi-image upload functionality */
+.hidden-slot {
+    display: none;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-3 {
+    margin-top: 15px;
+}
+
+.d-block {
+    display: block;
+}
+
+.mt-2 {
+    margin-top: 10px;
+}
+
+.text-muted {
+    color: #6c757d;
+}
 </style>
 
 <script>
@@ -581,9 +755,36 @@ document.querySelectorAll('.image-input').forEach(function(input) {
         }
     });
 });
-</script>
-<script>
-    // Price input handling for Indian currency format
+
+// Add more images functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const addMoreBtn = document.getElementById('addMoreImagesBtn');
+    const hiddenSlots = document.querySelectorAll('.hidden-slot');
+    let visibleSlotCount = 2; // We start with 2 visible slots
+    
+    addMoreBtn.addEventListener('click', function() {
+        // Show next 2 slots (or however many are left)
+        for (let i = 0; i < 2 && visibleSlotCount < 10; i++) {
+            if (hiddenSlots[visibleSlotCount - 2]) {
+                hiddenSlots[visibleSlotCount - 2].classList.remove('hidden-slot');
+                visibleSlotCount++;
+            }
+        }
+        
+        // Hide button if we've reached the maximum
+        if (visibleSlotCount >= 10) {
+            addMoreBtn.style.display = 'none';
+        }
+        
+        // Update the button text to show how many more can be added
+        const remaining = 10 - visibleSlotCount;
+        if (remaining > 0) {
+            addMoreBtn.innerHTML = `<i class="fas fa-plus"></i> Add More Images (${remaining} remaining)`;
+        }
+    });
+});
+
+// Price input handling for Indian currency format
 document.addEventListener('DOMContentLoaded', function() {
     const priceDisplay = document.getElementById('price-display');
     const priceDenomination = document.getElementById('price-denomination');
@@ -624,6 +825,14 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             pricePreview.textContent = '₹' + formatIndianPrice(calculatedPrice.toFixed(2));
         }
+        
+        // Log the price calculation for debugging
+        console.log('Price calculated:', {
+            display: displayValue,
+            multiplier: multiplier,
+            calculated: calculatedPrice,
+            field: actualPrice.value
+        });
     }
     
     // Add event listeners
@@ -633,9 +842,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize with default values
     updateActualPrice();
     
-    // Before form submission, ensure the hidden price field has the correct value
+    // Force price calculation right before form submission
     document.querySelector('form').addEventListener('submit', function(e) {
+        // Force price calculation one last time
         updateActualPrice();
+        
+        // Add a small delay to ensure the value is set
+        setTimeout(function() {
+            console.log('Final price value before submit:', actualPrice.value);
+        }, 10);
+        
+        // Validation check
+        if (!actualPrice.value || parseFloat(actualPrice.value) <= 0) {
+            e.preventDefault();
+            alert('Please enter a valid price');
+            priceDisplay.focus();
+            return false;
+        }
+        
+        return true;
     });
 });
 </script>

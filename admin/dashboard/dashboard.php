@@ -28,7 +28,7 @@ foreach ($properties_by_status as $item) {
 }
 
 // Get total agents count
-$db->query("SELECT COUNT(*) as count FROM users WHERE role = 'agent'");
+$db->query("SELECT COUNT(*) as count FROM agents");  // Changed from users to agents table
 $total_agents = $db->single()['count'];
 
 // Get total enquiries count
@@ -43,15 +43,18 @@ $new_enquiries = $db->single()['count'];
 $db->query("SELECT p.*, pt.name AS type_name, u.name AS agent_name 
             FROM properties p
             LEFT JOIN property_types pt ON p.type_id = pt.id
-            LEFT JOIN users u ON p.agent_id = u.id
+            LEFT JOIN agents a ON p.agent_id = a.id
+            LEFT JOIN users u ON a.user_id = u.id
             ORDER BY p.created_at DESC
             LIMIT 5");
 $recent_properties = $db->resultSet();
 
 // Get recent enquiries
-$db->query("SELECT e.*, p.title AS property_title 
+$db->query("SELECT e.*, p.title AS property_title, a.id as agent_id, u.name as agent_name 
             FROM enquiries e
             LEFT JOIN properties p ON e.property_id = p.id
+            LEFT JOIN agents a ON e.agent_id = a.id
+            LEFT JOIN users u ON a.user_id = u.id
             ORDER BY e.created_at DESC
             LIMIT 5");
 $recent_enquiries = $db->resultSet();
@@ -62,6 +65,7 @@ include_once '../includes/header.php';
 
 <!-- Dashboard Stats -->
 <div class="stats-grid">
+    <!-- Total Properties -->
     <div class="stat-card stat-card-primary">
         <div class="stat-card-header">
             <div class="stat-card-title">TOTAL PROPERTIES</div>
@@ -71,10 +75,19 @@ include_once '../includes/header.php';
         </div>
         <div class="stat-card-value"><?php echo $total_properties; ?></div>
         <div class="stat-card-subtitle">
-            <?php echo isset($status_counts['available']) ? $status_counts['available'] : 0; ?> available
+            <?php 
+            // Display count of each status type
+            $available = isset($status_counts['available']) ? $status_counts['available'] : 0;
+            $pending = isset($status_counts['pending']) ? $status_counts['pending'] : 0;
+            $sold = isset($status_counts['sold']) ? $status_counts['sold'] : 0;
+            $rented = isset($status_counts['rented']) ? $status_counts['rented'] : 0;
+            
+            echo "Available: $available | Pending: $pending | Sold: $sold | Rented: $rented";
+            ?>
         </div>
     </div>
     
+    <!-- Total Agents -->
     <div class="stat-card stat-card-success">
         <div class="stat-card-header">
             <div class="stat-card-title">TOTAL AGENTS</div>
@@ -83,9 +96,20 @@ include_once '../includes/header.php';
             </div>
         </div>
         <div class="stat-card-value"><?php echo $total_agents; ?></div>
-        <div class="stat-card-subtitle">Active property managers</div>
+        <div class="stat-card-subtitle">
+            <?php 
+            // Query for active agents count
+            $db->query("SELECT COUNT(*) as count FROM agents a 
+                        JOIN users u ON a.user_id = u.id 
+                        WHERE u.status = 1");
+            $active_agents = $db->single()['count'];
+            
+            echo "$active_agents active out of $total_agents total";
+            ?>
+        </div>
     </div>
     
+    <!-- Total Enquiries -->
     <!-- <div class="stat-card stat-card-warning">
         <div class="stat-card-header">
             <div class="stat-card-title">TOTAL ENQUIRIES</div>
@@ -99,20 +123,27 @@ include_once '../includes/header.php';
         </div>
     </div> -->
     
+    <!-- Property Status Distribution -->
     <div class="stat-card stat-card-danger">
         <div class="stat-card-header">
-            <div class="stat-card-title">SOLD PROPERTIES</div>
+            <div class="stat-card-title">PROPERTY STATUS</div>
             <div class="stat-card-icon">
-                <i class="fas fa-check-circle"></i>
+                <i class="fas fa-chart-pie"></i>
             </div>
         </div>
-        <div class="stat-card-value"><?php echo isset($status_counts['sold']) ? $status_counts['sold'] : 0; ?></div>
+        <div class="stat-card-value">
+            <?php 
+            // Calculate percentage of sold+rented properties
+            $completed = ($sold + $rented);
+            $percent = $total_properties > 0 ? round(($completed / $total_properties) * 100) : 0;
+            echo "$percent%";
+            ?>
+        </div>
         <div class="stat-card-subtitle">
-            Property sales completed
+            Sold/Rented conversion rate
         </div>
     </div>
 </div>
-
 <!-- Recent Properties -->
 <div class="card mb-3">
     <div class="card-header">
@@ -145,17 +176,17 @@ include_once '../includes/header.php';
                                 <td><?php echo htmlspecialchars($property['title']); ?></td>
                                 <td><?php echo htmlspecialchars($property['type_name']); ?></td>
                                 <td><?php echo formatPrice($property['price']); ?></td>
-                                <td><?php echo htmlspecialchars($property['agent_name']); ?></td>
+                                <td><?php echo htmlspecialchars($property['agent_name'] ?? 'Unassigned'); ?></td>
                                 <td>
                                     <span class="status-badge status-<?php echo $property['status']; ?>">
                                         <?php echo ucfirst($property['status']); ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="properties/edit.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-primary">
+                                    <a href="../properties/edit.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-primary m-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="properties/index.php?view=<?php echo $property['id']; ?>" class="btn btn-sm btn-secondary">
+                                    <a href="../properties/property-details.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-secondary m-1">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </td>
@@ -166,7 +197,7 @@ include_once '../includes/header.php';
             </table>
         </div>
         <div class="card-footer text-right">
-            <a href="properties/index.php" class="btn btn-outline">View All Properties</a>
+            <a href="../properties/index.php" class="btn btn-outline">View All Properties</a>
         </div>
     </div>
 </div>
@@ -184,7 +215,7 @@ include_once '../includes/header.php';
                         <th>ID</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Property</th>
+                        <th>Property/Agent</th>
                         <th>Date</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -202,7 +233,15 @@ include_once '../includes/header.php';
                                 <td><?php echo htmlspecialchars($inquiry['name']); ?></td>
                                 <td><?php echo htmlspecialchars($inquiry['email']); ?></td>
                                 <td>
-                                    <?php echo $inquiry['property_id'] ? htmlspecialchars($inquiry['property_title']) : 'General Inquiry'; ?>
+                                    <?php 
+                                    if ($inquiry['property_id']) {
+                                        echo htmlspecialchars($inquiry['property_title']);
+                                    } elseif ($inquiry['agent_id']) {
+                                        echo 'Agent: ' . htmlspecialchars($inquiry['agent_name']);
+                                    } else {
+                                        echo 'General Inquiry';
+                                    }
+                                    ?>
                                 </td>
                                 <td><?php echo formatDate($inquiry['created_at']); ?></td>
                                 <td>
@@ -214,7 +253,7 @@ include_once '../includes/header.php';
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="enquiries/view.php?id=<?php echo $inquiry['id']; ?>" class="btn btn-sm btn-primary">
+                                    <a href="../enquiries/view.php?id=<?php echo $inquiry['id']; ?>" class="btn btn-sm btn-primary">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                 </td>

@@ -47,7 +47,7 @@ try {
         redirect($redirect_page);
         exit;
     }
-    $user_id_to_update = $agent_data['user_id']; // Store user_id for later update
+    $user_id_to_delete = $agent_data['user_id']; // Store user_id for later deletion
 
 } catch (Exception $e) {
      error_log("Error checking agent existence (ID: {$agent_id_to_delete}): " . $e->getMessage());
@@ -55,7 +55,6 @@ try {
      redirect($redirect_page);
      exit;
 }
-
 
 // 3. Check if agent has properties assigned (Safety Check)
 try {
@@ -75,7 +74,6 @@ try {
      redirect($redirect_page);
      exit;
 }
-
 
 // 4. Proceed with Deletion inside a Transaction
 try {
@@ -106,30 +104,40 @@ try {
          throw new Exception("Failed to delete agent record.");
     }
 
-
-    // Update the associated user's role to 'user' (or delete if appropriate)
-    if ($user_id_to_update) {
-         $db->query("UPDATE users SET role = 'user' WHERE id = :user_id AND role = 'agent'");
-         $db->bind(':user_id', $user_id_to_update);
-         if (!$db->execute()) {
-              // Log this failure, but maybe don't stop the whole process? Or do? Depends on requirements.
-              error_log("Failed to update user role for user ID {$user_id_to_update} after deleting agent ID {$agent_id_to_delete}");
-              // Decide if this failure should cause a rollback
-              // throw new Exception("Failed to update user role.");
-         }
+    // Delete the associated user completely
+    if ($user_id_to_delete) {
+        // Check if user has a profile image to delete
+        $db->query("SELECT profile_pic FROM users WHERE id = :user_id");
+        $db->bind(':user_id', $user_id_to_delete);
+        $user_data = $db->single();
+        
+        // Delete the user from the database
+        $db->query("DELETE FROM users WHERE id = :user_id");
+        $db->bind(':user_id', $user_id_to_delete);
+        if (!$db->execute()) {
+            throw new Exception("Failed to delete associated user account.");
+        }
+        
+        // Delete profile image file if it exists
+        if ($user_data && !empty($user_data['profile_pic'])) {
+            $profile_pic_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $user_data['profile_pic'];
+            if (file_exists($profile_pic_path)) {
+                unlink($profile_pic_path);
+            }
+        }
     }
 
-    // If all queries succeeded, commit the transaction using YOUR class method name
-    if (!$db->endTransaction()) { // *** USE endTransaction() ***
+    // If all queries succeeded, commit the transaction
+    if (!$db->endTransaction()) {
          throw new Exception("Failed to commit database transaction.");
     }
 
     // Set success message
-    setFlashMessage('success', 'Agent (ID: ' . $agent_id_to_delete . ') and related data deleted successfully!');
+    setFlashMessage('success', 'Agent and associated user account deleted successfully!');
 
 } catch (Exception $e) {
-    // An error occurred, rollback the transaction using YOUR class method name
-    $db->cancelTransaction(); // *** USE cancelTransaction() ***
+    // An error occurred, rollback the transaction
+    $db->cancelTransaction();
 
     // Log the specific error for debugging
     error_log("Agent deletion failed (ID: {$agent_id_to_delete}): " . $e->getMessage());
@@ -141,5 +149,4 @@ try {
 // 5. Redirect back to the agents list page
 redirect($redirect_page);
 exit;
-
 ?>

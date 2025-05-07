@@ -81,143 +81,146 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Add more validation for URLs if needed
 
     // --- Profile Picture Upload ---
-  // --- Profile Picture Upload ---
-  $profile_pic_path_for_db = null; // Relative path for DB
-  $new_pic_full_path = null; // Full path for potential deletion on error
+    $profile_pic_path_for_db = null; // Relative path for DB
+    $new_pic_full_path = null; // Full path for potential deletion on error
 
-  if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] == UPLOAD_ERR_OK) {
-      // Use the constant defined in your config.php
-      $upload_dir = AGENT_IMG_PATH; // Use AGENT_IMG_PATH directly
+    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] == UPLOAD_ERR_OK && !empty($_FILES['profile_pic']['name'])) {
+        // Use the constant defined in your config.php
+        $upload_dir = AGENT_IMG_PATH; // Use AGENT_IMG_PATH directly
 
-      // Check if defined correctly
-      if (!defined('AGENT_IMG_PATH')) {
-           $errors['profile_pic'] = "Upload path configuration error.";
-      }
-      // Make sure the directory exists and is writable
-      elseif (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
-           $errors['profile_pic'] = "Failed to create upload directory: " . $upload_dir;
-      } elseif (!is_writable($upload_dir)){
-           $errors['profile_pic'] = "Upload directory is not writable: " . $upload_dir;
-      } else {
-          // Use constants from config.php for validation
-          $allowed_ext = ALLOWED_EXTENSIONS ?? ['jpg', 'jpeg', 'png', 'gif']; // Use defined or default
-          $max_size = MAX_FILE_SIZE ?? 2 * 1024 * 1024; // Use defined or default (2MB)
-
-          $file_tmp = $_FILES['profile_pic']['tmp_name'];
-          $file_name = basename($_FILES['profile_pic']['name']);
-          $file_size = $_FILES['profile_pic']['size'];
-          $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-
-          if (!in_array($file_ext, $allowed_ext)) {
-               $errors['profile_pic'] = 'Invalid file type. Allowed: ' . implode(', ', $allowed_ext);
-          } elseif ($file_size > $max_size) {
-               $errors['profile_pic'] = 'File size exceeds limit (' . round($max_size / 1024 / 1024, 1) . 'MB).';
-          } else {
-              $new_filename = uniqid('agent_', true) . '.' . $file_ext;
-              $destination_full_path = rtrim($upload_dir, '/') . '/' . $new_filename; // Full server path
-
-              if (move_uploaded_file($file_tmp, $destination_full_path)) {
-                  // Store RELATIVE path from assets/images/ directory for DB consistency
-                  // Assuming AGENT_IMG_PATH corresponds to assets/images/agents/
-                  $profile_pic_path_for_db = 'agents/' . $new_filename;
-                  $new_pic_full_path = $destination_full_path; // Keep track for potential deletion
-              } else {
-                   $errors['profile_pic'] = 'Failed to move uploaded file.';
-                   error_log("Failed move_uploaded_file to: " . $destination_full_path);
-              }
-          }
-      }
-  }
-
-// --- If No Errors, Proceed to Database ---
-if (empty($errors)) {
-    try {
-        $db->beginTransaction();
-
-        // 1. Create User Record
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $db->query("INSERT INTO users (name, email, password, phone, profile_pic, status, role, created_at, updated_at)
-                    VALUES (:name, :email, :password, :phone, :profile_pic, :status, 'agent', NOW(), NOW())");
-
-        // *** Complete Bindings for User Insert ***
-        $db->bind(':name', $input_values['name']);
-        $db->bind(':email', $input_values['email']);
-        $db->bind(':password', $hashed_password);
-        $db->bind(':phone', $input_values['phone']);
-        $db->bind(':profile_pic', $profile_pic_path_for_db); // Bind relative path or NULL
-        $db->bind(':status', $input_values['status']);
-        // *** End Complete Bindings ***
-
-        if (!$db->execute()) {
-             throw new Exception("Failed to execute user creation statement.");
+        // Check if defined correctly
+        if (!defined('AGENT_IMG_PATH')) {
+            $errors['profile_pic'] = "Upload path configuration error.";
         }
-        $new_user_id = $db->lastInsertId();
+        // Make sure the directory exists and is writable
+        elseif (!is_dir($upload_dir) && !mkdir($upload_dir, 0755, true)) {
+            $errors['profile_pic'] = "Failed to create upload directory: " . $upload_dir;
+        } elseif (!is_writable($upload_dir)){
+            $errors['profile_pic'] = "Upload directory is not writable: " . $upload_dir;
+        } else {
+            // Use constants from config.php for validation
+            $allowed_ext = ALLOWED_EXTENSIONS ?? ['jpg', 'jpeg', 'png', 'gif']; // Use defined or default
+            $max_size = MAX_FILE_SIZE ?? 2 * 1024 * 1024; // Use defined or default (2MB)
 
-        if (!$new_user_id) { throw new Exception("Failed to get new user ID after insertion."); }
+            $file_tmp = $_FILES['profile_pic']['tmp_name'];
+            $file_name = basename($_FILES['profile_pic']['name']);
+            $file_size = $_FILES['profile_pic']['size'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
-        // 2. Create Agent Record
-        $db->query("INSERT INTO agents (user_id, position, description, experience, facebook_url, twitter_url, instagram_url, linkedin_url, youtube_url, website_url, office_address, office_hours, featured, created_at, updated_at)
-                    VALUES (:user_id, :position, :description, :experience, :facebook_url, :twitter_url, :instagram_url, :linkedin_url, :youtube_url, :website_url, :office_address, :office_hours, :featured, NOW(), NOW())");
-        $db->bind(':user_id', $new_user_id);
-        $db->bind(':position', $input_values['position']);
-        $db->bind(':description', $input_values['description']);
-        $db->bind(':experience', $input_values['experience']);
-        $db->bind(':facebook_url', $input_values['facebook_url']);
-        $db->bind(':twitter_url', $input_values['twitter_url']);
-        $db->bind(':instagram_url', $input_values['instagram_url']);
-        $db->bind(':linkedin_url', $input_values['linkedin_url']);
-        $db->bind(':youtube_url', $input_values['youtube_url']);
-        $db->bind(':website_url', $input_values['website_url']);
-        $db->bind(':office_address', $input_values['office_address']);
-        $db->bind(':office_hours', $input_values['office_hours']);
-        $db->bind(':featured', $input_values['featured']);
+            if (!in_array($file_ext, $allowed_ext)) {
+                $errors['profile_pic'] = 'Invalid file type. Allowed: ' . implode(', ', $allowed_ext);
+            } elseif ($file_size > $max_size) {
+                $errors['profile_pic'] = 'File size exceeds limit (' . round($max_size / 1024 / 1024, 1) . 'MB).';
+            } else {
+                $new_filename = uniqid('agent_', true) . '.' . $file_ext;
+                $destination_full_path = rtrim($upload_dir, '/') . '/' . $new_filename; // Full server path
 
-        if (!$db->execute()) {
-             throw new Exception("Failed to execute agent creation statement.");
-        }
-        $new_agent_id = $db->lastInsertId();
-
-         if (!$new_agent_id) { throw new Exception("Failed to get new agent ID after insertion."); }
-
-        // 3. Insert Specialization Mappings
-        if (!empty($selected_specializations)) {
-            // Prepare statement outside the loop for efficiency
-            $db->query("INSERT INTO agent_specialization_mapping (agent_id, specialization_id) VALUES (:agent_id, :spec_id)");
-            foreach ($selected_specializations as $spec_id) {
-                $db->bind(':agent_id', $new_agent_id);
-                $db->bind(':spec_id', (int)$spec_id); // Ensure it's an integer
-                if (!$db->execute()) {
-                     throw new Exception("Failed to insert specialization mapping for spec_id: " . $spec_id);
+                if (move_uploaded_file($file_tmp, $destination_full_path)) {
+                    // Store RELATIVE path for DB consistency
+                    $profile_pic_path_for_db = 'assets/images/agents/' . $new_filename;
+                    $new_pic_full_path = $destination_full_path; // Keep track for potential deletion
+                } else {
+                    $errors['profile_pic'] = 'Failed to move uploaded file.';
+                    error_log("Failed move_uploaded_file to: " . $destination_full_path);
                 }
             }
         }
-
-        // Commit transaction if all steps succeeded
-        if (!$db->endTransaction()) { // Use your commit method name
-            throw new Exception("Failed to commit database transaction.");
-        }
-
-        setFlashMessage('success', 'New agent (ID: ' . $new_agent_id . ') created successfully!');
-        redirect('index.php');
-        exit;
-
-    } catch (Exception $e) {
-        $db->cancelTransaction(); // Use your rollback method name
-        error_log("Agent creation failed: " . $e->getMessage());
-        setFlashMessage('error', 'Failed to create agent. Error: ' . $e->getMessage());
-
-        // *** Corrected Unlink Logic ***
-        // Delete newly uploaded file if DB action failed, using the correct full path variable
-        if ($new_pic_full_path && file_exists($new_pic_full_path)) {
-            unlink($new_pic_full_path);
-            error_log("Deleted uploaded file due to DB error: " . $new_pic_full_path); // Log deletion
-        }
-        // *** End Corrected Unlink Logic ***
     }
-} else {
-    // Errors exist from validation, set flash message
-    setFlashMessage('error', 'Please correct the errors highlighted below.');
-}
+
+    // --- If No Errors, Proceed to Database ---
+    if (empty($errors)) {
+        try {
+            $db->beginTransaction();
+
+            // 1. Create User Record
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+            $db->query("INSERT INTO users (name, email, password, phone, profile_pic, status, role, created_at, updated_at)
+                        VALUES (:name, :email, :password, :phone, :profile_pic, :status, 'agent', NOW(), NOW())");
+
+            // *** Complete Bindings for User Insert ***
+            $db->bind(':name', $input_values['name']);
+            $db->bind(':email', $input_values['email']);
+            $db->bind(':password', $hashed_password);
+            $db->bind(':phone', $input_values['phone'] ?: null); // Use null for empty phone
+            $db->bind(':profile_pic', $profile_pic_path_for_db); // Bind relative path or NULL
+            $db->bind(':status', $input_values['status']);
+            // *** End Complete Bindings ***
+
+            if (!$db->execute()) {
+                throw new Exception("Failed to execute user creation statement.");
+            }
+            $new_user_id = $db->lastInsertId();
+
+            if (!$new_user_id) { throw new Exception("Failed to get new user ID after insertion."); }
+
+            // 2. Create Agent Record - UPDATED to use NULL for empty values
+            $db->query("INSERT INTO agents (user_id, position, description, experience, facebook_url, twitter_url, instagram_url, linkedin_url, youtube_url, website_url, office_address, office_hours, featured, created_at, updated_at)
+                       VALUES (:user_id, :position, :description, :experience,
+                              NULLIF(:facebook_url, ''), NULLIF(:twitter_url, ''), NULLIF(:instagram_url, ''),
+                              NULLIF(:linkedin_url, ''), NULLIF(:youtube_url, ''), NULLIF(:website_url, ''),
+                              NULLIF(:office_address, ''), NULLIF(:office_hours, ''), 
+                              :featured, NOW(), NOW())");
+
+            $db->bind(':user_id', $new_user_id);
+            $db->bind(':position', $input_values['position'] ?: 'Real Estate Agent');
+            $db->bind(':description', $input_values['description'] ?: null);
+            $db->bind(':experience', $input_values['experience']);
+            $db->bind(':facebook_url', $input_values['facebook_url']);
+            $db->bind(':twitter_url', $input_values['twitter_url']);
+            $db->bind(':instagram_url', $input_values['instagram_url']);
+            $db->bind(':linkedin_url', $input_values['linkedin_url']);
+            $db->bind(':youtube_url', $input_values['youtube_url']);
+            $db->bind(':website_url', $input_values['website_url']);
+            $db->bind(':office_address', $input_values['office_address']);
+            $db->bind(':office_hours', $input_values['office_hours']);
+            $db->bind(':featured', $input_values['featured']);
+
+            if (!$db->execute()) {
+                throw new Exception("Failed to execute agent creation statement.");
+            }
+            $new_agent_id = $db->lastInsertId();
+
+            if (!$new_agent_id) { throw new Exception("Failed to get new agent ID after insertion."); }
+
+            // 3. Insert Specialization Mappings
+            if (!empty($selected_specializations)) {
+                // Prepare statement outside the loop for efficiency
+                $db->query("INSERT INTO agent_specialization_mapping (agent_id, specialization_id) VALUES (:agent_id, :spec_id)");
+                foreach ($selected_specializations as $spec_id) {
+                    $db->bind(':agent_id', $new_agent_id);
+                    $db->bind(':spec_id', (int)$spec_id); // Ensure it's an integer
+                    if (!$db->execute()) {
+                        throw new Exception("Failed to insert specialization mapping for spec_id: " . $spec_id);
+                    }
+                }
+            }
+
+            // Commit transaction if all steps succeeded
+            if (!$db->endTransaction()) { // Use your commit method name
+                throw new Exception("Failed to commit database transaction.");
+            }
+
+            setFlashMessage('success', 'New agent (ID: ' . $new_agent_id . ') created successfully!');
+            redirect('index.php');
+            exit;
+
+        } catch (Exception $e) {
+            $db->cancelTransaction(); // Use your rollback method name
+            error_log("Agent creation failed: " . $e->getMessage());
+            setFlashMessage('error', 'Failed to create agent. Error: ' . $e->getMessage());
+
+            // *** Corrected Unlink Logic ***
+            // Delete newly uploaded file if DB action failed, using the correct full path variable
+            if ($new_pic_full_path && file_exists($new_pic_full_path)) {
+                unlink($new_pic_full_path);
+                error_log("Deleted uploaded file due to DB error: " . $new_pic_full_path); // Log deletion
+            }
+            // *** End Corrected Unlink Logic ***
+        }
+    } else {
+        // Errors exist from validation, set flash message
+        setFlashMessage('error', 'Please correct the errors highlighted below.');
+    }
 } // End of POST handling block
 
 // --- Rest of your add.php file (HTML Form, includes etc.) ---
@@ -264,6 +267,7 @@ include_once '../includes/header.php';
                             <div class="col-md-6">
                                 <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
                                 <input type="password" class="form-control <?php echo isset($errors['password']) ? 'is-invalid' : ''; ?>" id="password" name="password" required>
+                                <span>Password must be at least 6 characters long</span>
                                 <?php if (isset($errors['password'])): ?><div class="invalid-feedback"><?php echo $errors['password']; ?></div><?php endif; ?>
                             </div>
                              <div class="col-md-6">
@@ -393,7 +397,13 @@ include_once '../includes/header.php';
                         </div>
 
                     </form>
-                </div> </div> </div> </div> </div> <?php
-// --- Include Footer ---
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php
+// Include Footer
 include_once '../includes/footer.php';
 ?>

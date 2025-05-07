@@ -78,74 +78,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_password = true;
     }
     
-    // Handle profile image upload
+   // Handle profile image upload
     $upload_result = false;
     $update_image = false;
-    
+
     if (!empty($_FILES['profile_pic']['name'])) {
         $file = $_FILES['profile_pic'];
-        $upload_result = uploadFile($file, $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/assets/images/users/', ['jpg', 'jpeg', 'png'], 2000000);
+        
+        // Ensure the upload directory exists
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/assets/images/users/';
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        $upload_result = uploadFile($file, $upload_dir, ['jpg', 'jpeg', 'png'], 2000000);
         
         if (!$upload_result) {
             $errors[] = 'Failed to upload profile image. Please ensure it is a valid image file and size is less than 2MB.';
         } else {
             $update_image = true;
+            
+            // Store the relative path instead of the full server path
+            $relative_path = str_replace($_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/', '', $upload_result['path']);
+            $upload_result['path'] = $relative_path;
         }
     }
     
     // Process if no errors
-    if (empty($errors)) {
-        // Update user data
-        $sql = "UPDATE users SET name = :name, email = :email, phone = :phone";
-        
-        if ($update_password) {
-            $sql .= ", password = :password";
-        }
-        
-        if ($update_image) {
-            $sql .= ", profile_pic = :profile_pic";
-        }
-        
-        $sql .= " WHERE id = :id";
-        
-        $db->query($sql);
-        $db->bind(':name', $name);
-        $db->bind(':email', $email);
-        $db->bind(':phone', $phone);
-        $db->bind(':id', $user['id']);
-        
-        if ($update_password) {
-            $db->bind(':password', password_hash($new_password, PASSWORD_DEFAULT));
-        }
-        
-        if ($update_image) {
-            $db->bind(':profile_pic', $upload_result['path']);
-            
-            // Delete old profile image if exists
-            if (!empty($user['profile_pic'])) {
-                $old_image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $user['profile_pic'];
-                if (file_exists($old_image_path)) {
-                    unlink($old_image_path);
-                }
-            }
-        }
-        
-        if ($db->execute()) {
-            // Update session variables
-            $_SESSION['user_name'] = $name;
-            $_SESSION['user_email'] = $email;
-            
-            if ($update_image) {
-                $_SESSION['user_profile_pic'] = $upload_result['path'];
-            }
-            
-            $success = true;
-            setFlashMessage('success', 'Profile updated successfully!');
-            redirect('profile.php');
-        } else {
-            $errors[] = 'Failed to update profile.';
-        }
+if (empty($errors)) {
+    // Start with basic fields that always get updated
+    $sql = "UPDATE users SET name = :name, email = :email, phone = :phone";
+    $params = [
+        ':name' => $name,
+        ':email' => $email,
+        ':phone' => $phone
+    ];
+    
+    // Add password update if needed
+    if ($update_password) {
+        $sql .= ", password = :password";
+        $params[':password'] = password_hash($new_password, PASSWORD_DEFAULT);
     }
+    
+    // Add profile pic update if needed
+    if ($update_image && $upload_result) {
+        $sql .= ", profile_pic = :profile_pic";
+        $params[':profile_pic'] = $upload_result['path'];
+    }
+    
+    // Finish the query
+    $sql .= " WHERE id = :id";
+    $params[':id'] = $user['id'];
+    
+    // For debugging
+    // echo "<!-- SQL: $sql -->";
+    
+    // Execute the query
+    $db->query($sql);
+    
+    // Bind all parameters
+    foreach ($params as $param => $value) {
+        $db->bind($param, $value);
+    }
+    
+    if ($db->execute()) {
+        // Update session variables
+        $_SESSION['user_name'] = $name;
+        $_SESSION['user_email'] = $email;
+        
+        if ($update_image && $upload_result) {
+            $_SESSION['user_profile_pic'] = $upload_result['path'];
+        }
+        
+        $success = true;
+        setFlashMessage('success', 'Profile updated successfully!');
+        redirect('profile.php');
+    } else {
+        $errors[] = 'Failed to update profile.';
+    }
+}
 }
 
 // Include header
@@ -169,8 +180,13 @@ include_once '../includes/header.php';
         
         <div class="profile-container">
             <div class="profile-sidebar">
-                <div class="profile-image">
-                    <img id="profile-preview" src="<?php echo !empty($user['profile_pic']) ? '../' . $user['profile_pic'] : '../assets/images/default-profile.jpg'; ?>" alt="<?php echo htmlspecialchars($user['name']); ?>">
+            <div class="profile-image">
+            <?php
+                                    $profile_pic_url = !empty($user['profile_pic']) 
+                                        ? '../../' . $user['profile_pic'] 
+                                        : '../../assets/images/default-profile.jpg';
+                                    ?>
+                    <img id="profile-preview" src="<?php echo $profile_pic_url; ?>" alt="<?php echo htmlspecialchars($user['name']); ?>" class="user-profile-image">
                 </div>
                 <div class="profile-info">
                     <h3><?php echo htmlspecialchars($user['name']); ?></h3>

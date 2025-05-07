@@ -438,3 +438,92 @@ body {
         margin-bottom: 5px;
     }
 }
+/* Responsive fixed size property images in tables */
+.table-image {
+    width: 120px; /* Default cell width */
+    height: 90px; /* Default cell height */
+    text-align: center;
+}
+
+.fixed-size-image {
+    width: 100px; /* Default image width */
+    height: 75px; /* Default image height */
+    object-fit: cover; /* Maintains aspect ratio */
+    border-radius: 4px; /* Rounded corners */
+    max-width: 100%; /* Ensures image doesn't overflow */
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 1200px) {
+    .table-image {
+        width: 100px;
+        height: 80px;
+    }
+    
+    .fixed-size-image {
+        width: 90px;
+        height: 65px;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .table-image {
+        width: 90px;
+        height: 70px;
+    }
+    
+    .fixed-size-image {
+        width: 80px;
+        height: 60px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .table-image {
+        width: 80px;
+        height: 60px;
+    }
+    
+    .fixed-size-image {
+        width: 70px;
+        height: 50px;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    .table-image {
+        width: 60px;
+        height: 50px;
+    }
+    
+    .fixed-size-image {
+        width: 50px;
+        height: 40px;
+    }
+}
+
+/* Make tables responsive */
+@media screen and (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    table {
+        min-width: 600px; /* Ensure table doesn't shrink too much */
+    }
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .image-preview-container {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    .image-preview-container {
+        width: 80px;
+        height: 80px;
+    }
+}

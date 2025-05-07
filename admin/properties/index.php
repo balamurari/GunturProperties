@@ -99,7 +99,8 @@ $total_pages = ceil($total_count / $limit);
 $sql = "SELECT p.*, pt.name AS type_name, u.name AS agent_name 
         FROM properties p
         LEFT JOIN property_types pt ON p.type_id = pt.id
-        LEFT JOIN users u ON p.agent_id = u.id
+        LEFT JOIN agents a ON p.agent_id = a.id
+        LEFT JOIN users u ON a.user_id = u.id
         WHERE 1=1";
 
 if (!empty($search)) {
@@ -147,11 +148,7 @@ include_once '../includes/header.php';
     <div class="card-body">
         <form method="GET" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>" class="filter-form">
             <div class="form-row">
-                <div class="form-group">
-                    <label for="search">Search</label>
-                    <input type="text" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search properties...">
-                </div>
-                
+           
                 <div class="form-group">
                     <label for="type">Property Type</label>
                     <select id="type" name="type">
@@ -203,13 +200,19 @@ include_once '../includes/header.php';
 
 <!-- Properties List -->
 <div class="card">
-    <div class="card-header">
-        <div class="card-header-actions">
-            <h2 class="mb-0">Properties</h2>
-            <a href="add.php" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add New Property
-            </a>
-        </div>
+    <div class="card-header ">
+    <div class="card-header-actions row justify-content-between w-100">
+    <div class="text-start">
+        <h2 class="mb-0">Properties</h2>
+        
+    </div>
+    <div class="text-end">
+        <a href="add.php" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Property
+        </a>
+    </div>
+</div>
+
     </div>
     <div class="card-body">
         <div class="table-container">
@@ -244,9 +247,18 @@ include_once '../includes/header.php';
                                     $db->query("SELECT image_path FROM property_images WHERE property_id = :id AND is_primary = 1 LIMIT 1");
                                     $db->bind(':id', $property['id']);
                                     $image = $db->single();
-                                    $image_path = $image ? '../' . $image['image_path'] : '../assets/images/no-image.jpg';
+                                    
+                                    // Use proper URL path for image
+                                    if ($image && !empty($image['image_path'])) {
+                                        // Extract filename from path
+                                        $filename = basename($image['image_path']);
+                                        // Create proper URL using constant
+                                        $image_path = PROPERTY_IMAGES_URL . $filename;
+                                    } else {
+                                        $image_path = DEFAULT_IMAGE_URL;
+                                    }
                                     ?>
-                                    <img src="<?php echo $image_path; ?>" alt="<?php echo htmlspecialchars($property['title']); ?>">
+                                    <img src="<?php echo $image_path; ?>" alt="<?php echo htmlspecialchars($property['title']); ?>" class="fixed-size-image">
                                 </td>
                                 <td><?php echo htmlspecialchars($property['title']); ?></td>
                                 <td><?php echo htmlspecialchars($property['type_name']); ?></td>
@@ -265,16 +277,16 @@ include_once '../includes/header.php';
                                         <i class="far fa-star"></i>
                                     <?php endif; ?>
                                 </td>
-                                <td class="table-actions ">
+                                <td class="table-actions">
                                     <a href="edit.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-primary mb-1">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <a href="?delete=<?php echo $property['id']; ?>" class="btn btn-sm btn-danger confirm-action" data-confirm="Are you sure you want to delete this property? This action cannot be undone.">
+                                    <a href="property-details.php?id=<?php echo $property['id']; ?>" class="btn btn-sm btn-secondary mb-1">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="?delete=<?php echo $property['id']; ?>" class="btn btn-sm btn-danger confirm-action mb-1" data-confirm="Are you sure you want to delete this property? This action cannot be undone.">
                                         <i class="fas fa-trash"></i>
                                     </a>
-                                    <!-- <a href="../property-detail.php?id=<?php echo $property['id']; ?>" target="_blank" class="btn btn-sm btn-secondary">
-                                        <i class="fas fa-eye"></i>
-                                    </a> -->
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -308,6 +320,97 @@ include_once '../includes/header.php';
         <?php endif; ?>
     </div>
 </div>
+
+<style>
+/* Fixed size property images in tables */
+.table-image {
+    width: 120px;
+    height: 90px;
+    text-align: center;
+}
+
+.fixed-size-image {
+    width: 100px;
+    height: 75px;
+    object-fit: cover;
+    border-radius: 4px;
+    max-width: 100%;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 1200px) {
+    .table-image {
+        width: 100px;
+        height: 80px;
+    }
+    
+    .fixed-size-image {
+        width: 90px;
+        height: 65px;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .table-image {
+        width: 90px;
+        height: 70px;
+    }
+    
+    .fixed-size-image {
+        width: 80px;
+        height: 60px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .table-image {
+        width: 80px;
+        height: 60px;
+    }
+    
+    .fixed-size-image {
+        width: 70px;
+        height: 50px;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    table {
+        min-width: 600px;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    .table-image {
+        width: 60px;
+        height: 50px;
+    }
+    
+    .fixed-size-image {
+        width: 50px;
+        height: 40px;
+    }
+}
+</style>
+
+<script>
+// Confirm action for delete buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmButtons = document.querySelectorAll('.confirm-action');
+    
+    confirmButtons.forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            const message = this.getAttribute('data-confirm');
+            
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
 
 <?php
 // Include footer

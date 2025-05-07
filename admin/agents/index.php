@@ -78,42 +78,45 @@ $offset = ($page - 1) * $limit;
 
 // Build the SQL query parts
 $base_select = "SELECT
-                    a.id AS agent_id, a.position, a.experience, a.properties_sold, a.featured, a.rating,
-                    u.id AS user_id, u.name, u.email, u.phone, u.profile_pic, u.status, u.created_at,
-                    COALESCE(pc.property_count, 0) AS listed_property_count";
+                a.id AS agent_id, a.position, a.experience, a.properties_sold, a.featured, a.rating,
+                u.id AS user_id, u.name, u.email, u.phone, u.profile_pic, u.status, u.created_at,
+                COALESCE(pc.property_count, 0) AS listed_property_count";
 
 $base_from = " FROM agents a
-               LEFT JOIN users u ON a.user_id = u.id
-               LEFT JOIN (
-                   SELECT agent_id, COUNT(*) as property_count
-                   FROM properties
-                   WHERE agent_id IS NOT NULL
-                   GROUP BY agent_id
-               ) pc ON a.id = pc.agent_id";
+           LEFT JOIN users u ON a.user_id = u.id
+           LEFT JOIN (
+               SELECT agent_id, COUNT(*) as property_count
+               FROM properties
+               WHERE agent_id IS NOT NULL
+               GROUP BY agent_id
+           ) pc ON a.id = pc.agent_id";
 
 $where_conditions = " WHERE 1=1"; // Base WHERE clause
-$params = []; // Array for binding parameters
 
 // Apply search filter
 if (!empty($search)) {
     $where_conditions .= " AND (u.name LIKE :search OR u.email LIKE :search OR u.phone LIKE :search OR a.position LIKE :search)";
-    $params[':search'] = "%" . $search . "%";
 }
 
 // Apply status filter (using users.status)
 if ($status_filter !== '') {
     $where_conditions .= " AND u.status = :status";
-    $params[':status'] = $status_filter;
 }
 
 // Count total matching agents for pagination
-$count_sql = "SELECT COUNT(a.id) as total " . $base_from . $where_conditions; // Count based on primary table
+$count_sql = "SELECT COUNT(a.id) as total " . $base_from . $where_conditions;
 $db->query($count_sql);
-foreach ($params as $key => $value) {
-    $db->bind($key, $value);
+
+// Bind parameters for count query
+if (!empty($search)) {
+    $db->bind(':search', '%' . $search . '%');
 }
-// Use fetchColumn for single count value
-$total_count_result = $db->single(); // Assuming single returns the row
+if ($status_filter !== '') {
+    $db->bind(':status', $status_filter);
+}
+
+// Get total count for pagination
+$total_count_result = $db->single();
 $total_count = $total_count_result ? $total_count_result['total'] : 0;
 $total_pages = $limit > 0 ? ceil($total_count / $limit) : 1;
 
@@ -124,16 +127,20 @@ $fetch_sql .= " LIMIT :limit OFFSET :offset";
 
 $db->query($fetch_sql);
 
-// Bind all parameters (filters + pagination)
-foreach ($params as $key => $value) {
-    $db->bind($key, $value);
+// Bind parameters for fetch query
+if (!empty($search)) {
+    $db->bind(':search', '%' . $search . '%');
 }
+if ($status_filter !== '') {
+    $db->bind(':status', $status_filter);
+}
+
+// Bind pagination parameters
 $db->bind(':limit', $limit, PDO::PARAM_INT);
 $db->bind(':offset', $offset, PDO::PARAM_INT);
 
 // Fetch the results
 $agents = $db->resultSet();
-
 // --- Include Header ---
 // This file should contain HTML head, Bootstrap CSS links, etc.
 include_once '../includes/header.php';
@@ -159,12 +166,12 @@ include_once '../includes/header.php';
                 <div class="card-body">
                     <form method="GET" action="index.php" class="filter-form">
                         <div class="row align-items-end">
-                            <div class="col-lg-5 mb-3">
+                            <!-- <div class="col-lg-5 mb-3">
                                 <label for="search" class="form-label">Search</label>
                                 <input type="text" class="form-control" id="search" name="search"
                                        value="<?php echo htmlspecialchars($search); ?>"
                                        placeholder="Name, email, phone, position...">
-                            </div>
+                            </div> -->
                             <div class="col-lg-4 mb-3">
                                 <label for="status" class="form-label">Account Status</label>
                                 <select class="form-select" id="status" name="status">
@@ -224,15 +231,22 @@ include_once '../includes/header.php';
                                             <td><?php echo $i;$i++; ?></td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <div class="me-2 flex-shrink-0">
-                                                        <?php
-                                                        $profile_pic_path = $agent['profile_pic'] ?? 'images/agent-placeholder.jpg';
-                                                        $profile_pic_url = getAssetPath($profile_pic_path); // Use function from functions.php
-                                                        ?>
-                                                        <img src="<?php echo $profile_pic_url; ?>"
-                                                             alt="<?php echo htmlspecialchars($agent['name'] ?? 'Agent'); ?>"
-                                                             class="rounded-circle" width="40" height="40" style="object-fit: cover;"
-                                                             onerror="this.onerror=null; this.src='<?php echo getAssetPath('images/agent-placeholder.jpg'); ?>';"> </div>
+                                                <div class="me-2 flex-shrink-0">
+                                                    <?php
+                                                    if (!empty($agent['profile_pic'])) {
+                                                        // Extract filename from path
+                                                        $filename = basename($agent['profile_pic']);
+                                                        // Create proper URL using constant
+                                                        $profile_pic_url = AGENT_IMAGES_URL . $filename;
+                                                    } else {
+                                                        $profile_pic_url = DEFAULT_IMAGE_URL;
+                                                    }
+                                                    ?>
+                                                    <img src="<?php echo $profile_pic_url; ?>"
+                                                        alt="<?php echo htmlspecialchars($agent['name'] ?? 'Agent'); ?>"
+                                                        class="rounded-circle" width="40" height="40" style="object-fit: cover;"
+                                                        onerror="this.onerror=null; this.src='<?php echo DEFAULT_IMAGE_URL; ?>';">
+                                                </div>
                                                     <div>
                                                         <?php echo htmlspecialchars($agent['name'] ?? 'N/A'); ?>
                                                         <?php if (!empty($agent['featured'])): ?>

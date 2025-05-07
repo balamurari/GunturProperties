@@ -283,12 +283,15 @@ function deleteProperty($id) {
  * @return array Agents data
  */
 function getAgents() {
-    global $db;
+    $db = new Database();
     
-    $db->query("SELECT id, name, email, phone, profile_pic, status, created_at 
-                FROM users 
-                WHERE role = 'agent' 
-                ORDER BY name ASC");
+    // Make sure to select agent.id, not user.id
+    $db->query("SELECT a.id, a.user_id, u.name, u.email, u.phone, u.profile_pic, 
+               a.position, a.experience, a.rating, a.properties_sold, a.featured
+               FROM agents a
+               JOIN users u ON a.user_id = u.id
+               WHERE u.status = 1 AND u.role = 'agent'
+               ORDER BY u.name ASC");
     
     return $db->resultSet();
 }

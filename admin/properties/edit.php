@@ -7,6 +7,15 @@ require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/functions.php';
 
+// Enable better debugging
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// Debug function
+function debug_log($message) {
+    error_log('[PROPERTY DEBUG] ' . $message);
+}
+
 // Set page title
 $page_title = 'Edit Property';
 
@@ -28,6 +37,8 @@ if (!$property) {
     setFlashMessage('error', 'Property not found.');
     redirect('index.php');
 }
+
+debug_log("Editing property with ID: $property_id, agent_id: " . ($property['agent_id'] ? $property['agent_id'] : 'NULL'));
 
 // Get property types
 $db->query("SELECT * FROM property_types ORDER BY name ASC");
@@ -56,6 +67,8 @@ $errors = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    debug_log("Form submitted: " . print_r($_POST, true));
+    
     // Sanitize and validate inputs
     $title = sanitize($_POST['title']);
     $description = sanitize($_POST['description']);
@@ -64,15 +77,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $city = sanitize($_POST['city']);
     $state = sanitize($_POST['state']);
     $zip_code = sanitize($_POST['zip_code']);
-    $bedrooms = isset($_POST['bedrooms']) ? (int)$_POST['bedrooms'] : null;
-    $bathrooms = isset($_POST['bathrooms']) ? (int)$_POST['bathrooms'] : null;
-    $area = isset($_POST['area']) ? (float)$_POST['area'] : null;
-    $facing = sanitize($_POST['facing']);
-    $area_unit = sanitize($_POST['area_unit'] ?? 'sq ft');
     $type_id = (int)$_POST['type_id'];
-    $agent_id = !empty($_POST['agent_id']) ? (int)$_POST['agent_id'] : null;
     $featured = isset($_POST['featured']) ? 1 : 0;
     $status = sanitize($_POST['status']);
+    
+    // Optional fields - careful NULL handling
+    // Bedrooms
+    if (isset($_POST['bedrooms']) && $_POST['bedrooms'] !== '') {
+        $bedrooms = (int)$_POST['bedrooms'];
+        debug_log("Bedrooms set to: $bedrooms");
+    } else {
+        $bedrooms = null;
+        debug_log("Bedrooms set to NULL");
+    }
+    
+    // Bathrooms
+    if (isset($_POST['bathrooms']) && $_POST['bathrooms'] !== '') {
+        $bathrooms = (float)$_POST['bathrooms'];
+        debug_log("Bathrooms set to: $bathrooms");
+    } else {
+        $bathrooms = null;
+        debug_log("Bathrooms set to NULL");
+    }
+    
+    // Facing
+    if (isset($_POST['facing']) && !empty($_POST['facing'])) {
+        $facing = sanitize($_POST['facing']);
+        debug_log("Facing set to: $facing");
+    } else {
+        $facing = null;
+        debug_log("Facing set to NULL");
+    }
+    
+    // Area
+    if (isset($_POST['area']) && $_POST['area'] !== '') {
+        $area = (float)$_POST['area'];
+        debug_log("Area set to: $area");
+    } else {
+        $area = null;
+        debug_log("Area set to NULL");
+    }
+    
+    // Area Unit
+    $area_unit = !empty($_POST['area_unit']) ? sanitize($_POST['area_unit']) : 'sq ft';
+    debug_log("Area unit set to: $area_unit");
+    
+    // Agent ID - special handling
+    if (!empty($_POST['agent_id'])) {
+        $agent_id = (int)$_POST['agent_id'];
+        debug_log("Agent ID from form: $agent_id");
+        
+        // Verify agent exists
+        $db->query("SELECT id FROM agents WHERE id = :id");
+        $db->bind(':id', $agent_id);
+        $agent_exists = $db->single();
+        
+        if ($agent_exists) {
+            debug_log("Agent ID set to: $agent_id (agent exists)");
+        } else {
+            $agent_id = null;
+            debug_log("Agent ID set to NULL (agent not found)");
+        }
+    } else {
+        $agent_id = null;
+        debug_log("Agent ID set to NULL (empty selection)");
+    }
     
     // Validate required fields
     if (empty($title)) {
@@ -95,14 +164,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'City is required';
     }
     
-    // if (empty($state)) {
-    //     $errors[] = 'State is required';
-    // }
-    
-    // if (empty($zip_code)) {
-    //     $errors[] = 'ZIP code is required';
-    // }
-    
     if (!$type_id) {
         $errors[] = 'Property type is required';
     }
@@ -113,27 +174,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Start transaction
             $db->beginTransaction();
             
-            // Update property
-            $db->query("UPDATE properties SET 
-                        title = :title, 
-                        description = :description, 
-                        price = :price, 
-                        address = :address, 
-                        city = :city, 
-                        state = :state, 
-                        zip_code = :zip_code, 
-                        bedrooms = :bedrooms, 
-                        bathrooms = :bathrooms,
-                         facing = :facing,
-                        area = :area, 
-                        area_unit = :area_unit, 
-                        type_id = :type_id, 
-                        agent_id = :agent_id, 
-                        featured = :featured, 
-                        status = :status,
-                        updated_at = NOW()
-                        WHERE id = :id");
+            // Improved query construction with NULL handling
+            $query = "UPDATE properties SET 
+                title = :title, 
+                description = :description, 
+                price = :price, 
+                address = :address, 
+                city = :city, 
+                state = :state, 
+                zip_code = :zip_code, 
+                bedrooms = " . ($bedrooms === null ? "NULL" : ":bedrooms") . ", 
+                bathrooms = " . ($bathrooms === null ? "NULL" : ":bathrooms") . ",
+                facing = " . ($facing === null ? "NULL" : ":facing") . ",
+                area = " . ($area === null ? "NULL" : ":area") . ", 
+                area_unit = :area_unit, 
+                type_id = :type_id, 
+                agent_id = " . ($agent_id === null ? "NULL" : ":agent_id") . ", 
+                featured = :featured, 
+                status = :status,
+                updated_at = NOW()
+                WHERE id = :id";
             
+            debug_log("SQL Query: " . $query);
+            
+            $db->query($query);
+           
+            // Bind required parameters
             $db->bind(':title', $title);
             $db->bind(':description', $description);
             $db->bind(':price', $price);
@@ -141,20 +207,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->bind(':city', $city);
             $db->bind(':state', $state);
             $db->bind(':zip_code', $zip_code);
-            $db->bind(':bedrooms', $bedrooms);
-            $db->bind(':bathrooms', $bathrooms);
-            $db->bind(':address', $address);
-            $db->bind(':facing', $facing);
-
-            $db->bind(':area', $area);
             $db->bind(':area_unit', $area_unit);
             $db->bind(':type_id', $type_id);
-            $db->bind(':agent_id', $agent_id);
+          
             $db->bind(':featured', $featured);
             $db->bind(':status', $status);
             $db->bind(':id', $property_id);
             
-            $db->execute();
+            // Selectively bind optional parameters
+            if ($bedrooms !== null) {
+                $db->bind(':bedrooms', $bedrooms);
+                debug_log("Binding bedrooms: $bedrooms");
+            }
+            
+            if ($bathrooms !== null) {
+                $db->bind(':bathrooms', $bathrooms);
+                debug_log("Binding bathrooms: $bathrooms");
+            }
+            
+            if ($facing !== null) {
+                $db->bind(':facing', $facing);
+                debug_log("Binding facing: $facing");
+            }
+            
+            if ($area !== null) {
+                $db->bind(':area', $area);
+                debug_log("Binding area: $area");
+            }
+            
+            if ($agent_id !== null) {
+                $db->bind(':agent_id', $agent_id);
+            }
+            
+            // Execute the query
+            $result = $db->execute();
+            
+            if (!$result) {
+                throw new Exception("Failed to update property");
+            }
+            
+            debug_log("Property updated successfully");
             
             // Handle property images
             $has_primary = false;
@@ -170,6 +262,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->bind(':property_id', $property_id);
                 $db->execute();
                 $has_primary = true;
+                debug_log("Primary image set to ID: $primary_image_id");
             }
             
             // Handle new image uploads
@@ -211,7 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         // Insert image
                         $db->query("INSERT INTO property_images (property_id, image_path, is_primary, sort_order) 
-                                   VALUES (:property_id, :image_path, :is_primary, :sort_order)");
+                                  VALUES (:property_id, :image_path, :is_primary, :sort_order)");
                         
                         $db->bind(':property_id', $property_id);
                         $db->bind(':image_path', $upload_result['path']);
@@ -219,6 +312,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $db->bind(':sort_order', $max_order + 1);
                         
                         $db->execute();
+                        debug_log("New image uploaded: " . $upload_result['path']);
+                    } else {
+                        debug_log("Failed to upload image: " . $name);
                     }
                 }
             }
@@ -237,12 +333,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $image['image_path'];
                         if (file_exists($image_path)) {
                             unlink($image_path);
+                            debug_log("Deleted image file: $image_path");
                         }
                         
                         // Delete image record
                         $db->query("DELETE FROM property_images WHERE id = :id");
                         $db->bind(':id', $image_id);
                         $db->execute();
+                        debug_log("Deleted image record ID: $image_id");
                     }
                 }
             }
@@ -252,27 +350,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->query("DELETE FROM property_feature_mapping WHERE property_id = :property_id");
             $db->bind(':property_id', $property_id);
             $db->execute();
+            debug_log("Deleted all existing feature mappings");
             
             // Then, add new feature mappings
             if (!empty($_POST['features'])) {
                 foreach ($_POST['features'] as $feature_id => $value) {
                     if (empty($value)) {
-                        continue;
+                        $value = "Yes"; // Default value
                     }
                     
                     $db->query("INSERT INTO property_feature_mapping (property_id, feature_id, value) 
-                               VALUES (:property_id, :feature_id, :value)");
+                              VALUES (:property_id, :feature_id, :value)");
                     
                     $db->bind(':property_id', $property_id);
                     $db->bind(':feature_id', $feature_id);
                     $db->bind(':value', $value);
                     
                     $db->execute();
+                    debug_log("Added feature mapping: property $property_id, feature $feature_id, value $value");
                 }
             }
             
             // Commit transaction
             $db->endTransaction();
+            debug_log("Transaction committed successfully");
             
             $success = true;
             setFlashMessage('success', 'Property updated successfully!');
@@ -281,6 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             // Rollback transaction on error
             $db->cancelTransaction();
+            debug_log("Error updating property: " . $e->getMessage());
             $errors[] = 'Error: ' . $e->getMessage();
         }
     }
@@ -362,7 +464,8 @@ include_once '../includes/header.php';
                     <select id="agent_id" name="agent_id">
                         <option value="">Select Agent</option>
                         <?php foreach ($agents as $agent): ?>
-                            <option value="<?php echo $agent['id']; ?>" <?php echo $property['agent_id'] == $agent['id'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo $agent['id']; ?>" 
+                                    <?php echo (isset($property['agent_id']) && $property['agent_id'] == $agent['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($agent['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -384,8 +487,8 @@ include_once '../includes/header.php';
                     <input type="number" id="bathrooms" name="bathrooms" min="0" step="0.5" value="<?php echo $property['bathrooms']; ?>">
                 </div>
                 <div class="form-group">
-                    <label for="facing">Facing <span class="required">*</span></label>
-                    <input type="text" id="facing" name="facing" value="<?php echo htmlspecialchars($property['facing']); ?>" required>
+                    <label for="facing">Facing</label>
+                    <input type="text" id="facing" name="facing" value="<?php echo htmlspecialchars($property['facing']); ?>">
                 </div>
                 
                 <div class="form-group">
@@ -656,6 +759,11 @@ document.querySelectorAll('.image-input').forEach(function(input) {
             reader.readAsDataURL(this.files[0]);
         }
     });
+});
+
+// Debug agent ID selection
+document.getElementById('agent_id').addEventListener('change', function() {
+    console.log('Agent ID selected:', this.value);
 });
 </script>
 
