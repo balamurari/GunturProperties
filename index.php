@@ -1,5 +1,17 @@
+<?php
+session_start(); // Start a session to track if user has seen splash page
 
-<?php include 'header.php'?>
+include 'header.php';
+
+// Check if this is the first time visiting
+if(!isset($_SESSION['visited'])) {
+    // Set the session variable to remember the visit
+    $_SESSION['visited'] = true;
+    // Redirect to splash page
+    header("Location: splash.php");
+    exit; // Important to prevent further code execution
+}
+?>
     <!-- Hero Section -->
     <section class="hero-section">
       <!-- Optional shooting star effect -->

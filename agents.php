@@ -225,5 +225,175 @@ include "header.php";
     </div>
 </section>
 <?php endif; ?>
+<style>
+    /* Agent Grid Styles */
+.agents-section {
+    padding: 60px 0;
+}
 
+.agents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+/* Agent Card Styles */
+.agent-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Agent Image Styles */
+.agent-image {
+    width: 100%;
+    height: 280px;
+    overflow: hidden;
+    position: relative;
+}
+
+.agent-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform 0.5s ease;
+}
+
+.agent-card:hover .agent-image img {
+    transform: scale(1.05);
+}
+
+/* Agent Info Styles */
+.agent-info {
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-info h3 {
+    margin: 0 0 5px;
+    font-size: 20px;
+    color: #333;
+}
+
+.agent-position {
+    color: #666;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.agent-contact {
+    margin-bottom: 15px;
+}
+
+.agent-contact p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+.agent-contact i {
+    color: #3498db;
+    margin-right: 8px;
+    width: 16px;
+}
+
+.agent-description {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.agent-specializations {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.agent-properties {
+    margin-bottom: 15px;
+}
+
+.agent-properties span {
+    background: #f0f8ff;
+    color: #3498db;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.agent-social {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.agent-social a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    color: #555;
+    transition: all 0.3s ease;
+}
+
+.agent-social a:hover {
+    background: #3498db;
+    color: white;
+}
+
+.view-profile-btn {
+    margin-top: auto;
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.view-profile-btn:hover {
+    background: #3498db;
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .agents-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+    
+    .agent-image {
+        height: 250px;
+    }
+}
+
+@media (max-width: 576px) {
+    .agents-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
 <?php include 'footer.php'; ?>

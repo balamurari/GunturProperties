@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="7;url=index.php">
-
+    
+    <link rel="icon" href="assets/images/favicon.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="assets/images/favicon.png">
     <title>Guntur Properties Welcome Page</title>
     <style>
         * {

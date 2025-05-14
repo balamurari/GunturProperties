@@ -14,6 +14,8 @@
       href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="icon" href="assets\images\favicon.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="assets\images\favicon.png">
   </head>
   <?php
 // Get the current page filename
@@ -56,7 +58,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </ul>
         </nav>
         <div class="contact-btn">
-          <a href="contact-us.php" class="btn btn-primary">Contact Us</a>
+          <a href="contact_us.php" class="btn btn-primary">Contact Us</a>
           <a href="admin" class="btn btn-primary">Agent Login</a>
         </div>
         <!-- Updated mobile toggle button -->

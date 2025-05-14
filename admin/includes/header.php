@@ -21,6 +21,8 @@ requireLogin();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="/path/to/your/local/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" href="../../assets/images/favicon.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="../../assets/images/favicon.png">
 </head>
 <body>
     <!-- Mobile menu toggle button -->

@@ -36,7 +36,7 @@
                         </div>
                         <div class="info-details">
                             <h3>Phone Number</h3>
-                            <p>+91 123 456 7890<br>+91 987 654 3210</p>
+                            <p>+91 85007 21069</p>
                         </div>
                     </div>
                     

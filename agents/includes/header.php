@@ -29,7 +29,8 @@ require_once __DIR__ . '/../../includes/config.php';
     <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="<?php echo ROOT_URL; ?>assets/css/admin-style.css"> <link rel="stylesheet" href="<?php echo ROOT_URL; ?>assets/css/responsive.css">
-
+        <link rel="icon" href="../../assets/images/favicon.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="../../assets/images/favicon.png">
 </head>
 <body>
     <button class="mobile-menu-toggle d-lg-none">
@@ -67,11 +68,11 @@ require_once __DIR__ . '/../../includes/config.php';
 
             <div class="container-fluid mt-3"> ```
 
-**2. Agent Sidebar (`agent/includes/sidebar.php`)**
+<!-- **2. Agent Sidebar (`agent/includes/sidebar.php`)**
 
 This defines the navigation links specific to the agent.
 
-```php
+```php -->
 <?php
 /**
  * Agent Dashboard Sidebar Include
