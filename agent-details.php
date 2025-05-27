@@ -187,15 +187,15 @@ include "header.php";
                         <div class="agent-stats">
                             <div class="agent-stat">
                                 <div class="stat-number"><?php echo $agent['experience']; ?>+</div>
-                                <div class="stat-label">Years Experience</div>
+                                <div class="stat-label" style="color:black">Years Experience</div>
                             </div>
-                            <div class="agent-stat">
+                            <div class="agent-stat" >
                                 <div class="stat-number"><?php echo $agent['properties_sold']; ?>+</div>
-                                <div class="stat-label">Properties Sold</div>
+                                <div class="stat-label"style="color:black">Properties Sold</div>
                             </div>
-                            <div class="agent-stat">
+                            <div class="agent-stat" >
                                 <div class="stat-number"><?php echo count($properties); ?></div>
-                                <div class="stat-label">Active Listings</div>
+                                <div class="stat-label" style="color:black">Active Listings</div>
                             </div>
                         </div>
                         
@@ -233,7 +233,7 @@ include "header.php";
                 
                 <div class="agent-about">
                 <h3>About <?php echo htmlspecialchars($agent['name'] ?? ''); ?></h3>
-                <div class="agent-description">
+                <div class="agent-description" style="color:black">
                     <?php 
                     // Add fallback description text if the agent description is empty
                     $description = !empty($agent['description']) 

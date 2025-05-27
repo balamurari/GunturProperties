@@ -1,6 +1,6 @@
 <?php
 /**
- * Properties Page
+ * Properties Listing Page with Single Line Filters
  * Display all properties with search and filter functionality
  */
 require_once 'includes/config.php';
@@ -8,1780 +8,1523 @@ require_once 'includes/database.php';
 require_once 'includes/functions.php';
 
 // Set page title
-$page_title = 'All Properties';
+$page_title = 'Properties';
 
 // Get database connection
 $db = new Database();
 
-// Initialize search and filter variables
-$search = '';
-$property_type = '';
-$price_min = '';
-$price_max = '';
-$size_min = '';
-$size_max = '';
-$min_bedrooms = isset($_GET['min_bedrooms']) ? (int)$_GET['min_bedrooms'] : '';
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$per_page = 12; // Number of properties per page
-$offset = ($page - 1) * $per_page;
-
-// Build the base query
-$base_query = "SELECT p.*, pt.name as property_type, 
-               (SELECT image_path FROM property_images WHERE property_id = p.id AND is_primary = 1 LIMIT 1) as primary_image
-               FROM properties p
-               LEFT JOIN property_types pt ON p.type_id = pt.id
-               WHERE 1=1";
-
-$count_query = "SELECT COUNT(*) as total FROM properties p WHERE 1=1";
-
-$query_params = [];
-
-// Handle search
-if (isset($_GET['search']) && !empty($_GET['search'])) {
-    $search = sanitize($_GET['search']);
-    $search_condition = " AND (p.title LIKE :search OR p.address LIKE :search OR p.city LIKE :search OR p.zip_code LIKE :search)";
-    $base_query .= $search_condition;
-    $count_query .= $search_condition;
-    $query_params[':search'] = '%' . $search . '%';
-}
-
-// Handle property type filter
-if (isset($_GET['property_type']) && !empty($_GET['property_type'])) {
-    $property_type = (int)$_GET['property_type'];
-    $type_condition = " AND p.type_id = :property_type";
-    $base_query .= $type_condition;
-    $count_query .= $type_condition;
-    $query_params[':property_type'] = $property_type;
-}
-
-// Handle price range filter
-if (isset($_GET['price_min']) && !empty($_GET['price_min'])) {
-    $price_min = (float)$_GET['price_min'];
-    $price_min_condition = " AND p.price >= :price_min";
-    $base_query .= $price_min_condition;
-    $count_query .= $price_min_condition;
-    $query_params[':price_min'] = $price_min;
-}
-
-if (isset($_GET['price_max']) && !empty($_GET['price_max'])) {
-    $price_max = (float)$_GET['price_max'];
-    $price_max_condition = " AND p.price <= :price_max";
-    $base_query .= $price_max_condition;
-    $count_query .= $price_max_condition;
-    $query_params[':price_max'] = $price_max;
-}
-
-// Handle size range filter
-if (isset($_GET['size_min']) && !empty($_GET['size_min'])) {
-    $size_min = (float)$_GET['size_min'];
-    $size_min_condition = " AND p.area >= :size_min";
-    $base_query .= $size_min_condition;
-    $count_query .= $size_min_condition;
-    $query_params[':size_min'] = $size_min;
-}
-
-if (isset($_GET['size_max']) && !empty($_GET['size_max'])) {
-    $size_max = (float)$_GET['size_max'];
-    $size_max_condition = " AND p.area <= :size_max";
-    $base_query .= $size_max_condition;
-    $count_query .= $size_max_condition;
-    $query_params[':size_max'] = $size_max;
-}
-
-// Handle bedrooms filter
-if (isset($_GET['min_bedrooms']) && !empty($_GET['min_bedrooms'])) {
-    $min_bedrooms = (int)$_GET['min_bedrooms'];
-    $bedrooms_condition = " AND p.bedrooms >= :min_bedrooms";
-    $base_query .= $bedrooms_condition;
-    $count_query .= $bedrooms_condition;
-    $query_params[':min_bedrooms'] = $min_bedrooms;
-}
-
-// Only show available properties by default (can be overridden with status filter)
-if (!isset($_GET['status'])) {
-    $status_condition = " AND p.status = 'available'";
-    $base_query .= $status_condition;
-    $count_query .= $status_condition;
-} else {
-    $status = sanitize($_GET['status']);
-    $status_condition = " AND p.status = :status";
-    $base_query .= $status_condition;
-    $count_query .= $status_condition;
-    $query_params[':status'] = $status;
-}
-
-// Add sorting
-$base_query .= " ORDER BY p.featured DESC, p.created_at DESC";
-
-// Add pagination
-$base_query .= " LIMIT :offset, :per_page";
-$query_params[':offset'] = $offset;
-$query_params[':per_page'] = $per_page;
-
-// Get total count for pagination
-$db->query($count_query);
-foreach ($query_params as $param => $value) {
-    // Skip pagination parameters
-    if ($param != ':offset' && $param != ':per_page') {
-        $db->bind($param, $value);
-    }
-}
-$total_count = $db->single()['total'];
-$total_pages = ceil($total_count / $per_page);
-
-// Get properties
-$db->query($base_query);
-foreach ($query_params as $param => $value) {
-    $db->bind($param, $value);
-}
-$properties = $db->resultSet();
-
-// Get property types for filter
+// Get all property types for filter dropdown
 $db->query("SELECT * FROM property_types ORDER BY name ASC");
 $property_types = $db->resultSet();
 
-// Include header
-include "header.php";
+// Initialize search parameters
+$search_params = [
+    'keyword' => $_GET['keyword'] ?? '',
+    'type_id' => $_GET['type_id'] ?? '',
+    'price_range' => $_GET['price_range'] ?? '',
+    'area_range' => $_GET['area_range'] ?? '',
+    'bedrooms' => $_GET['bedrooms'] ?? '',
+    'bathrooms' => $_GET['bathrooms'] ?? '',
+    'city' => $_GET['city'] ?? '',
+    'status' => $_GET['status'] ?? '',
+    'featured' => $_GET['featured'] ?? '',
+    'facing' => $_GET['facing'] ?? '',
+    'sort_by' => $_GET['sort_by'] ?? 'created_at',
+    'sort_order' => $_GET['sort_order'] ?? 'DESC'
+];
 
-// Helper function to format price in Indian currency format
+// Debug: Log all search parameters
+error_log("=== SEARCH DEBUG ===");
+error_log("All GET parameters: " . print_r($_GET, true));
+error_log("Search parameters: " . print_r($search_params, true));
+
+// Pagination parameters
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$properties_per_page = 12;
+$offset = ($page - 1) * $properties_per_page;
+
+// Build WHERE clause based on search parameters
+$where_conditions = [];
+$bind_params = [];
+
+// Status filter - if no status selected, show buy and rent properties
+if (!empty($search_params['status'])) {
+    if ($search_params['status'] == 'buy') {
+        $where_conditions[] = "p.status IN ('buy')";
+    } elseif ($search_params['status'] == 'rent') {
+        $where_conditions[] = "p.status IN ('rent')";
+    } else {
+        $where_conditions[] = "p.status = :status";
+        $bind_params[':status'] = $search_params['status'];
+    }
+} else {
+    $where_conditions[] = "p.status IN ('buy', 'rent')";
+}
+
+// Title search
+if (!empty($search_params['keyword'])) {
+    $search_keyword = trim($search_params['keyword']);
+    $where_conditions[] = "p.title LIKE :keyword";
+    $bind_params[':keyword'] = '%' . $search_keyword . '%';
+}
+
+// Property type filter
+if (!empty($search_params['type_id'])) {
+    $where_conditions[] = "p.type_id = :type_id";
+    $bind_params[':type_id'] = $search_params['type_id'];
+}
+
+// Price range filter
+if (!empty($search_params['price_range'])) {
+    switch ($search_params['price_range']) {
+        case 'below_30l':
+            $where_conditions[] = "p.price < 3000000";
+            break;
+        case '30l_to_60l':
+            $where_conditions[] = "p.price >= 3000000 AND p.price <= 6000000";
+            break;
+        case '60l_to_1cr':
+            $where_conditions[] = "p.price >= 6000000 AND p.price <= 10000000";
+            break;
+        case 'above_1cr':
+            $where_conditions[] = "p.price > 10000000";
+            break;
+    }
+}
+
+// Area range filter
+if (!empty($search_params['area_range'])) {
+    switch ($search_params['area_range']) {
+        case 'below_500':
+            $where_conditions[] = "p.area < 500";
+            break;
+        case '500_to_1000':
+            $where_conditions[] = "p.area >= 500 AND p.area <= 1000";
+            break;
+        case '1000_to_2000':
+            $where_conditions[] = "p.area >= 1000 AND p.area <= 2000";
+            break;
+        case '2000_to_5000':
+            $where_conditions[] = "p.area >= 2000 AND p.area <= 5000";
+            break;
+        case 'above_5000':
+            $where_conditions[] = "p.area > 5000";
+            break;
+    }
+}
+
+// Bedrooms filter
+if (!empty($search_params['bedrooms'])) {
+    if ($search_params['bedrooms'] === '4+') {
+        $where_conditions[] = "p.bedrooms >= 4";
+    } else {
+        $where_conditions[] = "p.bedrooms = :bedrooms";
+        $bind_params[':bedrooms'] = $search_params['bedrooms'];
+    }
+}
+
+// Bathrooms filter
+if (!empty($search_params['bathrooms'])) {
+    if ($search_params['bathrooms'] === '3+') {
+        $where_conditions[] = "p.bathrooms >= 3";
+    } else {
+        $where_conditions[] = "p.bathrooms = :bathrooms";
+        $bind_params[':bathrooms'] = $search_params['bathrooms'];
+    }
+}
+
+// City filter
+if (!empty($search_params['city'])) {
+    $where_conditions[] = "p.city LIKE :city";
+    $bind_params[':city'] = '%' . $search_params['city'] . '%';
+}
+
+// Featured filter
+if (!empty($search_params['featured']) && $search_params['featured'] == '1') {
+    $where_conditions[] = "p.featured = 1";
+}
+
+// Facing filter
+if (!empty($search_params['facing'])) {
+    $where_conditions[] = "p.facing = :facing";
+    $bind_params[':facing'] = $search_params['facing'];
+}
+
+// Build the complete WHERE clause
+$where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
+
+// Validate sort parameters
+$valid_sort_columns = ['created_at', 'price', 'title', 'bedrooms', 'area'];
+$valid_sort_orders = ['ASC', 'DESC'];
+
+if (!in_array($search_params['sort_by'], $valid_sort_columns)) {
+    $search_params['sort_by'] = 'created_at';
+}
+if (!in_array($search_params['sort_order'], $valid_sort_orders)) {
+    $search_params['sort_order'] = 'DESC';
+}
+
+$order_clause = "ORDER BY p.featured DESC, p.{$search_params['sort_by']} {$search_params['sort_order']}";
+
+// Get total count for pagination
+$count_query = "SELECT COUNT(*) as total 
+                FROM properties p 
+                LEFT JOIN property_types pt ON p.type_id = pt.id 
+                $where_clause";
+
+$db->query($count_query);
+foreach ($bind_params as $param => $value) {
+    $db->bind($param, $value);
+}
+
+$count_result = $db->single();
+$total_properties = 0;
+
+if ($count_result && is_array($count_result) && isset($count_result['total'])) {
+    $total_properties = (int)$count_result['total'];
+}
+
+$total_pages = $total_properties > 0 ? ceil($total_properties / $properties_per_page) : 1;
+
+// Get properties with pagination
+$properties_query = "SELECT p.*, pt.name as property_type,
+                     (SELECT image_path FROM property_images WHERE property_id = p.id AND is_primary = 1 LIMIT 1) as primary_image,
+                     (SELECT COUNT(*) FROM property_images WHERE property_id = p.id) as image_count
+                     FROM properties p 
+                     LEFT JOIN property_types pt ON p.type_id = pt.id 
+                     $where_clause 
+                     $order_clause 
+                     LIMIT :limit OFFSET :offset";
+
+$db->query($properties_query);
+foreach ($bind_params as $param => $value) {
+    $db->bind($param, $value);
+}
+$db->bind(':limit', $properties_per_page);
+$db->bind(':offset', $offset);
+
+try {
+    $properties = $db->resultSet();
+    if (!$properties) {
+        $properties = [];
+    }
+} catch (Exception $e) {
+    $properties = [];
+    error_log("Properties query error: " . $e->getMessage());
+}
+
+// Get unique cities for filter dropdown
+try {
+    $db->query("SELECT DISTINCT city FROM properties WHERE city IS NOT NULL AND city != '' ORDER BY city ASC");
+    $cities_result = $db->resultSet();
+    $cities = $cities_result ? $cities_result : [];
+} catch (Exception $e) {
+    $cities = [];
+    error_log("Cities query error: " . $e->getMessage());
+}
+
+// Helper functions
 function formatIndianPrice($price) {
-    if ($price >= 10000000) { // 1 crore
-        return round($price / 10000000, 2) . ' Cr';
-    } elseif ($price >= 100000) { // 1 lakh
-        return round($price / 100000, 2) . ' L';
+    if ($price >= 10000000) {
+        return '₹' . round($price / 10000000, 2) . ' Cr';
+    } elseif ($price >= 100000) {
+        return '₹' . round($price / 100000, 2) . ' L';
     } else {
         return '₹' . number_format($price);
     }
 }
 
-// Helper function to build filter URLs
-function buildFilterUrl($param, $value) {
-    $params = $_GET;
-    $params[$param] = $value;
+
+function getStatusInfo($status) {
+    $status_info = [
+        'buy' => ['text' => 'For Sale', 'class' => 'buy'],
+        'rent' => ['text' => 'For Rent', 'class' => 'rent'],
+        'pending' => ['text' => 'Pending', 'class' => 'pending'],
+        'sold' => ['text' => 'Sold', 'class' => 'sold'],
+        'rented' => ['text' => 'Rented', 'class' => 'rented']
+    ];
     
-    // Reset page when filter changes
-    if ($param !== 'page') {
-        $params['page'] = 1;
-    }
-    
-    return '?' . http_build_query($params);
+    return $status_info[$status] ?? ['text' => ucfirst($status), 'class' => $status];
 }
 
-// Helper function to check if a filter is active
-function isFilterActive($param, $value) {
-    return isset($_GET[$param]) && $_GET[$param] == $value;
+function buildPaginationUrl($search_params, $page) {
+    $params = $search_params;
+    $params['page'] = $page;
+    
+    $params = array_filter($params, function($value) {
+        return $value !== '' && $value !== null;
+    });
+    
+    return 'properties.php?' . http_build_query($params);
 }
 
-// Helper function to maintain current filters when changing page
-function buildPaginationUrl($page_num) {
-    $params = $_GET;
-    $params['page'] = $page_num;
-    return '?' . http_build_query($params);
-}
-
-// Helper function to get the correct image URL
-function getPropertyImageUrl($image_path) {
-    if (empty($image_path)) {
-        return DEFAULT_IMAGE_URL;
-    }
-    
-    // Check if the image path already contains the full URL
-    if (strpos($image_path, 'http://') === 0 || strpos($image_path, 'https://') === 0) {
-        return $image_path;
-    }
-    
-    // Check if the image path has a leading slash
-    if (strpos($image_path, '/') === 0) {
-        $image_path = substr($image_path, 1);
-    }
-    
-    // If the image path contains 'assets/images/properties/', extract just the filename
-    if (strpos($image_path, 'assets/images/properties/') !== false) {
-        $parts = explode('assets/images/properties/', $image_path);
-        $image_path = end($parts);
-    }
-    
-    // Return the full URL to the image
-    return PROPERTY_IMAGES_URL . $image_path;
-}
+include "header.php";
 ?>
 
 <!-- Page Header -->
 <section class="page-header">
     <div class="container">
-        <h1>All Properties</h1>
-        <p>Explore our extensive collection of premium real estate properties</p>
-        <?php if ($search): ?>
-        <div class="search-results-info">
-            Showing results for: <strong><?php echo htmlspecialchars($search); ?></strong>
-        </div>
-        <?php endif; ?>
+        <h1>Properties</h1>
+        <p>Find your perfect property from our extensive collection</p>
     </div>
 </section>
 
-<!-- Search Section with Improved Filters -->
-<section class="search-section">
+<!-- Search Filters Section -->
+<section class="search-filters-section" id="search-filters">
     <div class="container">
-        <div class="search-container">
-            <form action="properties.php" method="GET" id="searchForm">
-                <!-- Search Input -->
-                <div class="search-input">
-                    <input type="text" name="search" placeholder="Search by address, city or zip code" value="<?php echo htmlspecialchars($search ?? ''); ?>">
-                    <button type="submit" class="search-btn">
-                        Find Property
-                    </button>
-                </div>
-                
-                <!-- Filter Section Label -->
-                <h3 class="search-filters-label">Filter Properties</h3>
-                
-                
-                
-                <!-- Search Filters -->
-                <div class="search-filters">
-                    <!-- Property Type Filter -->
-                    <div class="filter-dropdown">
-                        <button type="button" class="dropdown-btn" id="propertyTypeBtn">
-                            <i class="fas fa-home"></i> Property Type <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-content" id="propertyTypeDropdown">
-                            <div class="filter-option">
-                                <input type="radio" id="type-all" name="property_type" value="" 
-                                       <?php echo empty($property_type) ? 'checked' : ''; ?>>
-                                <label for="type-all">All Property Types</label>
-                            </div>
+        <form class="search-filters-form" method="GET" action="properties.php">
+            <div class="filters-wrapper">
+                <div class="filters-container" id="filters-container">
+                    <!-- Search Input -->
+                    <div class="filter-group search-input">
+                        <input type="text" name="keyword" placeholder="Search properties..." 
+                               value="<?php echo htmlspecialchars($search_params['keyword']); ?>" class="form-control">
+                    </div>
+                    
+                    <!-- Property Type -->
+                    <div class="filter-group">
+                        <select name="type_id" class="form-control">
+                            <option value="">Property Type</option>
                             <?php foreach ($property_types as $type): ?>
-                            <div class="filter-option">
-                                <input type="radio" id="type-<?php echo $type['id']; ?>" name="property_type" 
-                                       value="<?php echo $type['id']; ?>" 
-                                       <?php echo $property_type == $type['id'] ? 'checked' : ''; ?>>
-                                <label for="type-<?php echo $type['id']; ?>"><?php echo htmlspecialchars($type['name']); ?></label>
-                            </div>
+                            <option value="<?php echo $type['id']; ?>" 
+                                    <?php echo ($search_params['type_id'] == $type['id']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($type['name']); ?>
+                            </option>
                             <?php endforeach; ?>
-                        </div>
+                        </select>
                     </div>
                     
-                    <!-- Price Range Filter -->
-                    <div class="filter-dropdown">
-                        <button type="button" class="dropdown-btn" id="priceRangeBtn">
-                            <i class="fas fa-rupee-sign"></i> Price Range <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-content" id="priceRangeDropdown">
-                            <div class="range-filter">
-                                <div class="range-filter-title">Select Price Range</div>
-                                <div class="range-inputs">
-                                    <div class="range-group">
-                                        <label for="price_min">Minimum Price (₹)</label>
-                                        <input type="number" id="price_min" name="price_min" min="0" step="100000" 
-                                               value="<?php echo $price_min ?? ''; ?>" placeholder="Min Price">
-                                    </div>
-                                    <div class="range-group">
-                                        <label for="price_max">Maximum Price (₹)</label>
-                                        <input type="number" id="price_max" name="price_max" min="0" step="100000" 
-                                               value="<?php echo $price_max ?? ''; ?>" placeholder="Max Price">
-                                    </div>
-                                </div>
-                                <div class="quick-ranges">
-                                    <button type="button" class="quick-range-btn" data-min="0" data-max="5000000">Under 50L</button>
-                                    <button type="button" class="quick-range-btn" data-min="5000000" data-max="10000000">50L - 1Cr</button>
-                                    <button type="button" class="quick-range-btn" data-min="10000000" data-max="20000000">1Cr - 2Cr</button>
-                                    <button type="button" class="quick-range-btn" data-min="20000000" data-max="">Above 2Cr</button>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- City -->
+                    <div class="filter-group">
+                        <select name="city" class="form-control">
+                            <option value="">City</option>
+                            <?php foreach ($cities as $city): ?>
+                            <option value="<?php echo htmlspecialchars($city['city']); ?>" 
+                                    <?php echo ($search_params['city'] == $city['city']) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($city['city']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     
-                    <!-- Property Size Filter -->
-                    <div class="filter-dropdown">
-                        <button type="button" class="dropdown-btn" id="propertySizeBtn">
-                            <i class="fas fa-ruler-combined"></i> Property Size <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-content" id="propertySizeDropdown">
-                            <div class="range-filter">
-                                <div class="range-filter-title">Select Size Range</div>
-                                <div class="range-inputs">
-                                    <div class="range-group">
-                                        <label for="size_min">Minimum Size (sq ft)</label>
-                                        <input type="number" id="size_min" name="size_min" min="0" step="100" 
-                                               value="<?php echo $size_min ?? ''; ?>" placeholder="Min Size">
-                                    </div>
-                                    <div class="range-group">
-                                        <label for="size_max">Maximum Size (sq ft)</label>
-                                        <input type="number" id="size_max" name="size_max" min="0" step="100" 
-                                               value="<?php echo $size_max ?? ''; ?>" placeholder="Max Size">
-                                    </div>
-                                </div>
-                                <div class="quick-ranges">
-                                    <button type="button" class="quick-range-btn" data-min="0" data-max="1000">Under 1000 sq ft</button>
-                                    <button type="button" class="quick-range-btn" data-min="1000" data-max="2000">1000 - 2000 sq ft</button>
-                                    <button type="button" class="quick-range-btn" data-min="2000" data-max="3000">2000 - 3000 sq ft</button>
-                                    <button type="button" class="quick-range-btn" data-min="3000" data-max="">Above 3000 sq ft</button>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Status -->
+                    <div class="filter-group">
+                        <select name="status" class="form-control">
+                            <option value="">Buy / Rent</option>
+                            <option value="buy" <?php echo ($search_params['status'] == 'buy') ? 'selected' : ''; ?>>For Sale</option>
+                            <option value="rent" <?php echo ($search_params['status'] == 'rent') ? 'selected' : ''; ?>>For Rent</option>
+                        </select>
                     </div>
                     
-                    <!-- More Filters Dropdown (Optional) -->
-                    <div class="filter-dropdown">
-                        <button type="button" class="dropdown-btn" id="moreFiltersBtn">
-                            <i class="fas fa-sliders-h"></i> More Filters(Eg: BHK) <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-content" id="moreFiltersDropdown">
-                            <!-- Bedrooms Filter -->
-                            <div class="range-filter-title">Bedrooms</div>
-                            <div class="quick-ranges">
-                                <button type="button" class="quick-range-btn bedroom-btn" data-value="1">1+ BHK</button>
-                                <button type="button" class="quick-range-btn bedroom-btn" data-value="2">2+ BHK</button>
-                                <button type="button" class="quick-range-btn bedroom-btn" data-value="3">3+ BHK</button>
-                                <button type="button" class="quick-range-btn bedroom-btn" data-value="4">4+ BHK</button>
-                                <button type="button" class="quick-range-btn bedroom-btn" data-value="5">5+ BHK</button>
-                            </div>
-                            <input type="hidden" name="min_bedrooms" id="min_bedrooms" value="<?php echo $min_bedrooms ?? ''; ?>">
-                            
-                            <!-- Property Status Filter -->
-                            <div class="range-filter-title" style="margin-top: 15px;">Property Status</div>
-                            <div class="filter-option">
-                                <input type="checkbox" id="status-available" name="status[]" value="available" 
-                                       <?php echo isset($status) && in_array('available', $status) ? 'checked' : ''; ?>>
-                                <label for="status-available">Available</label>
-                            </div>
-                            <div class="filter-option">
-                                <input type="checkbox" id="status-pending" name="status[]" value="pending" 
-                                       <?php echo isset($status) && in_array('pending', $status) ? 'checked' : ''; ?>>
-                                <label for="status-pending">Pending</label>
-                            </div>
-                        </div>
+                    <!-- Bedrooms -->
+                    <div class="filter-group">
+                        <select name="bedrooms" class="form-control">
+                            <option value="">BHK</option>
+                            <option value="1" <?php echo ($search_params['bedrooms'] == '1') ? 'selected' : ''; ?>>1 BHK</option>
+                            <option value="2" <?php echo ($search_params['bedrooms'] == '2') ? 'selected' : ''; ?>>2 BHK</option>
+                            <option value="3" <?php echo ($search_params['bedrooms'] == '3') ? 'selected' : ''; ?>>3 BHK</option>
+                            <option value="4+" <?php echo ($search_params['bedrooms'] == '4+') ? 'selected' : ''; ?>>4+ BHK</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Price Range -->
+                    <div class="filter-group">
+                        <select name="price_range" class="form-control">
+                            <option value="">Price Range</option>
+                            <option value="below_30l" <?php echo ($search_params['price_range'] == 'below_30l') ? 'selected' : ''; ?>>Below ₹30L</option>
+                            <option value="30l_to_60l" <?php echo ($search_params['price_range'] == '30l_to_60l') ? 'selected' : ''; ?>>₹30L - ₹60L</option>
+                            <option value="60l_to_1cr" <?php echo ($search_params['price_range'] == '60l_to_1cr') ? 'selected' : ''; ?>>₹60L - ₹1Cr</option>
+                            <option value="above_1cr" <?php echo ($search_params['price_range'] == 'above_1cr') ? 'selected' : ''; ?>>Above ₹1Cr</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Area Range -->
+                    <div class="filter-group">
+                        <select name="area_range" class="form-control">
+                            <option value="">Area Range</option>
+                            <option value="below_500" <?php echo ($search_params['area_range'] == 'below_500') ? 'selected' : ''; ?>>Below 500 sq ft</option>
+                            <option value="500_to_1000" <?php echo ($search_params['area_range'] == '500_to_1000') ? 'selected' : ''; ?>>500-1000 sq ft</option>
+                            <option value="1000_to_2000" <?php echo ($search_params['area_range'] == '1000_to_2000') ? 'selected' : ''; ?>>1000-2000 sq ft</option>
+                            <option value="2000_to_5000" <?php echo ($search_params['area_range'] == '2000_to_5000') ? 'selected' : ''; ?>>2000-5000 sq ft</option>
+                            <option value="above_5000" <?php echo ($search_params['area_range'] == 'above_5000') ? 'selected' : ''; ?>>Above 5000 sq ft</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Facing -->
+                    <div class="filter-group">
+                        <select name="facing" class="form-control">
+                            <option value="">Facing</option>
+                            <option value="North" <?php echo ($search_params['facing'] == 'North') ? 'selected' : ''; ?>>North</option>
+                            <option value="South" <?php echo ($search_params['facing'] == 'South') ? 'selected' : ''; ?>>South</option>
+                            <option value="East" <?php echo ($search_params['facing'] == 'East') ? 'selected' : ''; ?>>East</option>
+                            <option value="West" <?php echo ($search_params['facing'] == 'West') ? 'selected' : ''; ?>>West</option>
+                            <option value="North-East" <?php echo ($search_params['facing'] == 'North-East') ? 'selected' : ''; ?>>North-East</option>
+                            <option value="North-West" <?php echo ($search_params['facing'] == 'North-West') ? 'selected' : ''; ?>>North-West</option>
+                            <option value="South-East" <?php echo ($search_params['facing'] == 'South-East') ? 'selected' : ''; ?>>South-East</option>
+                            <option value="South-West" <?php echo ($search_params['facing'] == 'South-West') ? 'selected' : ''; ?>>South-West</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Sort -->
+                    <div class="filter-group">
+                        <select name="sort_by" class="form-control" onchange="this.form.submit()">
+                            <option value="created_at" <?php echo ($search_params['sort_by'] == 'created_at') ? 'selected' : ''; ?>>Latest First</option>
+                            <option value="price" <?php echo ($search_params['sort_by'] == 'price') ? 'selected' : ''; ?>>Price</option>
+                            <option value="area" <?php echo ($search_params['sort_by'] == 'area') ? 'selected' : ''; ?>>Area</option>
+                            <option value="bedrooms" <?php echo ($search_params['sort_by'] == 'bedrooms') ? 'selected' : ''; ?>>BHK</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <select name="sort_order" class="form-control" onchange="this.form.submit()">
+                            <option value="DESC" <?php echo ($search_params['sort_order'] == 'DESC') ? 'selected' : ''; ?>>High to Low Price</option>
+                            <option value="ASC" <?php echo ($search_params['sort_order'] == 'ASC') ? 'selected' : ''; ?>>Low to High Price</option>
+                        </select>
                     </div>
                 </div>
                 
-                <!-- Filter Action Buttons -->
+                <!-- Action Buttons - Fixed on Right -->
                 <div class="filter-actions">
-                    <button type="submit" class="apply-filters-btn">
-                        <i class="fas fa-filter"></i> Apply Filters
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> <span class="btn-text">Search</span>
                     </button>
-                    <a href="properties.php" class="reset-filters-btn">
-                        <i class="fas fa-times"></i> Reset
+                    <a href="properties.php" class="btn btn-outline">
+                        <i class="fas fa-redo"></i> <span class="btn-text">Reset</span>
                     </a>
                 </div>
-            </form>
-        </div>
+                 <!-- <div class="scroll-hint" id="scroll-hint">
+                Scroll for more filters →
+            </div> -->
+            </div>
+            
+           
+        </form>
+        
     </div>
+    
 </section>
 
 
-<!-- Properties Grid -->
-<section class="properties-grid">
+<!-- Properties Results Section -->
+<section class="properties-results-section">
     <div class="container">
-        <div class="properties-count">
-            <span><?php echo $total_count; ?> Properties Found</span>
+        <!-- Results Header -->
+        <div class="results-header">
+            <div class="results-info">
+                <h3>
+                    <?php if (!empty($search_params['keyword']) || !empty($search_params['type_id']) || !empty($search_params['city'])): ?>
+                        Search Results
+                    <?php else: ?>
+                        All Properties
+                    <?php endif; ?>
+                </h3>
+                <p>Showing <?php echo count($properties); ?> of <?php echo $total_properties; ?> properties
+                <?php if ($page > 1): ?>
+                    (Page <?php echo $page; ?> of <?php echo $total_pages; ?>)
+                <?php endif; ?>
+                </p>
+            </div>
+            
+            <?php if (!empty($search_params['keyword'])): ?>
+            <div class="search-summary">
+                <span class="search-term">Search: "<?php echo htmlspecialchars($search_params['keyword']); ?>"</span>
+            </div>
+            <?php endif; ?>
         </div>
-        <div class="grid-container">
-            <?php if (!empty($properties)): ?>
-                <?php foreach ($properties as $property): ?>
-                <div class="property-card">
-                    <div class="property-images">
-                        <img src="<?php echo getPropertyImageUrl($property['primary_image']); ?>" 
-                             alt="<?php echo htmlspecialchars($property['title']); ?>">
-                    </div>
+        
+        <?php if (empty($properties)): ?>
+        <!-- No Results -->
+        <div class="no-results">
+            <div class="no-results-content">
+                <i class="fas fa-search"></i>
+                <h3>No Properties Found</h3>
+                <p>We couldn't find any properties matching your search criteria.</p>
+                <p>Try adjusting your filters or <a href="properties.php">browse all properties</a>.</p>
+            </div>
+        </div>
+        
+        <?php else: ?>
+        <!-- Properties Grid -->
+        <div class="properties-grid">
+            <?php foreach ($properties as $property): ?>
+            <div class="property-card">
+                <?php if (!empty($property['featured']) && $property['featured'] == 1): ?>
+                <div class="property-badge featured-badge">Featured</div>
+                <?php endif; ?>
+                
+                <?php 
+                $status_info = getStatusInfo($property['status']);
+                ?>
+                <div class="property-status status-<?php echo $status_info['class']; ?>">
+                    <?php echo $status_info['text']; ?>
+                </div>
+                
+                <div class="property-images">
+                    <img src="<?php echo getPropertyImageUrl($property['primary_image']); ?>" 
+                         alt="<?php echo htmlspecialchars($property['title']); ?>"
+                         onerror="this.onerror=null; this.src='assets/images/no-image.jpg';">
                     
-                    <?php if (!empty($property['status'])): ?>
-                    <div class="property-status status-<?php echo strtolower($property['status']); ?>">
-                        <?php echo ucfirst($property['status']); ?>
+                    <?php if (!empty($property['image_count']) && $property['image_count'] > 1): ?>
+                    <div class="image-count">
+                        <i class="fas fa-camera"></i> <?php echo $property['image_count']; ?>
                     </div>
                     <?php endif; ?>
-                    
-                    <?php if (!empty($property['featured']) && $property['featured'] == 1): ?>
-                    <div class="property-featured"></div>
-                    <?php endif; ?>
-                    
-                    <div class="property-info">
-                        <h3><?php echo htmlspecialchars($property['title']); ?></h3>
-                        <div class="property-price"><?php echo formatIndianPrice($property['price']); ?></div>
-                        <div class="property-details-row">
-                            <?php if (!empty($property['bedrooms'])): ?>
-                            <span><i class="fas fa-bed"></i> <?php echo $property['bedrooms']; ?> Beds</span>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($property['bathrooms'])): ?>
-                            <span><i class="fas fa-bath"></i> <?php echo $property['bathrooms']; ?> Baths</span>
-                            <?php endif; ?>
-                            
-                            <?php if (!empty($property['area'])): ?>
-                            <span><i class="fas fa-ruler-combined"></i> <?php echo $property['area']; ?> <?php echo $property['area_unit']; ?></span>
+                </div>
+                
+                <div class="property-info">
+                    <div class="property-header">
+                        <h3 class="property-title">
+                            <a href="property-details.php?id=<?php echo $property['id']; ?>">
+                                <?php echo htmlspecialchars($property['title']); ?>
+                            </a>
+                        </h3>
+                        <div class="property-price">
+                            <?php echo formatIndianPrice($property['price']); ?>
+                            <?php if ($property['status'] == 'rent'): ?>
+                            <span class="rent-period">/ month</span>
                             <?php endif; ?>
                         </div>
-                        <p class="property-location">
-                            <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($property['address']); ?>
-                        </p>
-                        <a href="property-details.php?id=<?php echo $property['id']; ?>" class="view-details-btn">View Details</a>
+                    </div>
+                    
+                    <div class="property-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <!-- <?php echo htmlspecialchars($property['address']); ?>,  -->
+                        <?php echo htmlspecialchars($property['city']); ?>
+                        <!-- <?php echo htmlspecialchars($property['state']); ?> -->
+                    </div>
+                    
+                    <div class="property-details-row">
+             
+                        
+                        <?php if (!empty($property['bedrooms'])): ?>
+                        <div class="property-detail">
+                            <i class="fas fa-bed"></i>
+                            <?php echo $property['bedrooms']; ?> Bed<?php echo ($property['bedrooms'] > 1) ? 's' : ''; ?>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($property['bathrooms'])): ?>
+                        <div class="property-detail">
+                            <i class="fas fa-bath"></i>
+                            <?php echo $property['bathrooms']; ?> Bath<?php echo ($property['bathrooms'] > 1) ? 's' : ''; ?>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (!empty($property['area'])): ?>
+                        <div class="property-detail">
+                            <i class="fas fa-ruler-combined"></i>
+                            <?php echo $property['area']; ?> <?php echo $property['area_unit']; ?>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <?php if (!empty($property['facing'])): ?>
+                    <div class="property-facing">
+                        <i class="fas fa-compass"></i>
+                        <?php echo htmlspecialchars($property['facing']); ?> Facing
+                    </div>
+                    <?php endif; ?>
+                    
+
+                    
+                    <div class="property-actions">
+                        <a href="property-details.php?id=<?php echo $property['id']; ?>" class="btn btn-primary view-details-btn">
+                            <i class="fas fa-eye"></i> View Details
+                        </a>
+                    
+                                <?php if ($property['status'] == 'rent'): ?>
+                        <button class="btn btn-outline share-btn" data-property-id="<?php echo $property['id']; ?>" title="Share">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                        <?php else: ?>
+                        <?php if (!empty($property['instagram_url'])): ?>
+                        <a href="<?php echo htmlspecialchars($property['instagram_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline instagram-btn" title="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <?php endif; ?>
+                        <?php endif; ?>
+                       
+                        
+             
                     </div>
                 </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="no-properties-found">
-                    <p>No properties found matching your criteria. Try adjusting your filters.</p>
-                </div>
-            <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
         </div>
         
         <!-- Pagination -->
         <?php if ($total_pages > 1): ?>
-        <div class="pagination">
-            <?php if ($page > 1): ?>
-            <a href="<?php echo buildPaginationUrl($page - 1); ?>" class="prev"><i class="fas fa-chevron-left"></i> Previous</a>
-            <?php endif; ?>
-            
-            <?php
-            // Show a limited number of pagination links
-            $start_page = max(1, $page - 2);
-            $end_page = min($total_pages, $page + 2);
-            
-            if ($start_page > 1) {
-                echo '<a href="' . buildPaginationUrl(1) . '">1</a>';
-                if ($start_page > 2) {
-                    echo '<span class="pagination-dots">...</span>';
-                }
-            }
-            
-            for ($i = $start_page; $i <= $end_page; $i++) {
-                echo '<a href="' . buildPaginationUrl($i) . '"' . ($i == $page ? ' class="active"' : '') . '>' . $i . '</a>';
-            }
-            
-            if ($end_page < $total_pages) {
-                if ($end_page < $total_pages - 1) {
-                    echo '<span class="pagination-dots">...</span>';
-                }
-                echo '<a href="' . buildPaginationUrl($total_pages) . '">' . $total_pages . '</a>';
-            }
-            ?>
-            
-            <?php if ($page < $total_pages): ?>
-            <a href="<?php echo buildPaginationUrl($page + 1); ?>" class="next">Next <i class="fas fa-chevron-right"></i></a>
-            <?php endif; ?>
+        <div class="pagination-container">
+            <nav class="pagination-nav">
+                <ul class="pagination">
+                    <!-- Previous Page -->
+                    <?php if ($page > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo buildPaginationUrl($search_params, $page - 1); ?>">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    <?php endif; ?>
+                    
+                    <!-- Page Numbers -->
+                    <?php
+                    $start_page = max(1, $page - 2);
+                    $end_page = min($total_pages, $page + 2);
+                    
+                    if ($start_page > 1): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo buildPaginationUrl($search_params, 1); ?>">1</a>
+                    </li>
+                    <?php if ($start_page > 2): ?>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    <?php endif; ?>
+                    <?php endif; ?>
+                    
+                    <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                    <li class="page-item <?php echo ($i == $page) ? 'active' : ''; ?>">
+                        <a class="page-link" href="<?php echo buildPaginationUrl($search_params, $i); ?>"><?php echo $i; ?></a>
+                    </li>
+                    <?php endfor; ?>
+                    
+                    <?php if ($end_page < $total_pages): ?>
+                    <?php if ($end_page < $total_pages - 1): ?>
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    <?php endif; ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo buildPaginationUrl($search_params, $total_pages); ?>"><?php echo $total_pages; ?></a>
+                    </li>
+                    <?php endif; ?>
+                    
+                    <!-- Next Page -->
+                    <?php if ($page < $total_pages): ?>
+                    <li class="page-item">
+                        <a class="page-link" href="<?php echo buildPaginationUrl($search_params, $page + 1); ?>">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    <?php endif; ?>
+                </ul>
+            </nav>
         </div>
+        <?php endif; ?>
+        
         <?php endif; ?>
     </div>
 </section>
 
-<!-- JavaScript for Filter Functionality -->
+<!-- JavaScript -->
 <script>
-   // JavaScript to update dropdown button text when filters are selected
 document.addEventListener('DOMContentLoaded', function() {
-    // Dropdown toggles with improved UI feedback
-    const dropdownBtns = document.querySelectorAll('.dropdown-btn');
-    dropdownBtns.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Toggle active class for styling
-            this.classList.toggle('active');
-            
-            // Close all other dropdowns
-            document.querySelectorAll('.dropdown-content').forEach(content => {
-                if (content.id !== this.id.replace('Btn', 'Dropdown')) {
-                    content.classList.remove('show');
-                    const otherBtn = document.getElementById(content.id.replace('Dropdown', 'Btn'));
-                    if (otherBtn) otherBtn.classList.remove('active');
-                }
-            });
-            
-            // Toggle this dropdown
-            const dropdownContent = document.getElementById(this.id.replace('Btn', 'Dropdown'));
-            if (dropdownContent) {
-                dropdownContent.classList.toggle('show');
+    // Sticky filters on scroll
+    const filtersSection = document.getElementById('search-filters');
+    const filtersTop = filtersSection.offsetTop;
+    let isSticky = false;
+    
+    function handleScroll() {
+        if (window.pageYOffset > filtersTop + 100) {
+            if (!isSticky) {
+                filtersSection.classList.add('sticky-filters');
+                isSticky = true;
             }
-        });
-    });
-    
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(event) {
-        if (!event.target.matches('.dropdown-btn') && 
-            !event.target.matches('.dropdown-btn *') && 
-            !event.target.matches('.dropdown-content') && 
-            !event.target.closest('.dropdown-content')) {
-            
-            document.querySelectorAll('.dropdown-content').forEach(content => {
-                content.classList.remove('show');
-            });
-            
-            document.querySelectorAll('.dropdown-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-        }
-    });
-    
-    // Property type radio buttons - update button text
-    document.querySelectorAll('input[name="property_type"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const propertyTypeBtn = document.getElementById('propertyTypeBtn');
-            if (this.value === '') {
-                propertyTypeBtn.innerHTML = '<i class="fas fa-home"></i> Property Type <i class="fas fa-chevron-down"></i>';
-            } else {
-                const label = document.querySelector('label[for="type-' + this.value + '"]').textContent;
-                propertyTypeBtn.innerHTML = '<i class="fas fa-home"></i> ' + label + ' <i class="fas fa-chevron-down"></i>';
-            }
-            
-            // Close the dropdown
-            document.getElementById('propertyTypeDropdown').classList.remove('show');
-            propertyTypeBtn.classList.remove('active');
-        });
-    });
-    
-    // Quick range buttons for price - update button text
-    const priceRangeBtns = document.querySelectorAll('#priceRangeDropdown .quick-range-btn');
-    priceRangeBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all buttons in this group
-            this.closest('.quick-ranges').querySelectorAll('.quick-range-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            
-            // Add active class to this button
-            this.classList.add('active');
-            
-            const min = this.getAttribute('data-min');
-            const max = this.getAttribute('data-max');
-            
-            // Update input values
-            const minInput = document.getElementById('price_min');
-            const maxInput = document.getElementById('price_max');
-            
-            if (min) minInput.value = min;
-            if (max) maxInput.value = max;
-            
-            // Update button text
-            const priceRangeBtn = document.getElementById('priceRangeBtn');
-            priceRangeBtn.innerHTML = '<i class="fas fa-rupee-sign"></i> ' + this.textContent + ' <i class="fas fa-chevron-down"></i>';
-            
-            // Close the dropdown
-            document.getElementById('priceRangeDropdown').classList.remove('show');
-            priceRangeBtn.classList.remove('active');
-        });
-    });
-    
-    // Custom price range inputs - update button text when user enters values
-    const priceInputs = document.querySelectorAll('#price_min, #price_max');
-    priceInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            updatePriceButtonText();
-        });
-        
-        input.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                updatePriceButtonText();
-                // Close the dropdown
-                document.getElementById('priceRangeDropdown').classList.remove('show');
-                document.getElementById('priceRangeBtn').classList.remove('active');
-            }
-        });
-    });
-    
-    function updatePriceButtonText() {
-        const minValue = document.getElementById('price_min').value;
-        const maxValue = document.getElementById('price_max').value;
-        const priceRangeBtn = document.getElementById('priceRangeBtn');
-        
-        if (minValue && maxValue) {
-            priceRangeBtn.innerHTML = '<i class="fas fa-rupee-sign"></i> ₹' + formatIndianPrice(minValue) + ' - ₹' + formatIndianPrice(maxValue) + ' <i class="fas fa-chevron-down"></i>';
-        } else if (minValue) {
-            priceRangeBtn.innerHTML = '<i class="fas fa-rupee-sign"></i> Min ₹' + formatIndianPrice(minValue) + ' <i class="fas fa-chevron-down"></i>';
-        } else if (maxValue) {
-            priceRangeBtn.innerHTML = '<i class="fas fa-rupee-sign"></i> Max ₹' + formatIndianPrice(maxValue) + ' <i class="fas fa-chevron-down"></i>';
         } else {
-            priceRangeBtn.innerHTML = '<i class="fas fa-rupee-sign"></i> Price Range <i class="fas fa-chevron-down"></i>';
-        }
-    }
-    
-    // Quick range buttons for size - update button text
-    const sizeRangeBtns = document.querySelectorAll('#propertySizeDropdown .quick-range-btn');
-    sizeRangeBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all buttons in this group
-            this.closest('.quick-ranges').querySelectorAll('.quick-range-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            
-            // Add active class to this button
-            this.classList.add('active');
-            
-            const min = this.getAttribute('data-min');
-            const max = this.getAttribute('data-max');
-            
-            // Update input values
-            const minInput = document.getElementById('size_min');
-            const maxInput = document.getElementById('size_max');
-            
-            if (min) minInput.value = min;
-            if (max) maxInput.value = max;
-            
-            // Update button text
-            const propertySizeBtn = document.getElementById('propertySizeBtn');
-            propertySizeBtn.innerHTML = '<i class="fas fa-ruler-combined"></i> ' + this.textContent + ' <i class="fas fa-chevron-down"></i>';
-            
-            // Close the dropdown
-            document.getElementById('propertySizeDropdown').classList.remove('show');
-            propertySizeBtn.classList.remove('active');
-        });
-    });
-    
-    // Custom size range inputs - update button text when user enters values
-    const sizeInputs = document.querySelectorAll('#size_min, #size_max');
-    sizeInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            updateSizeButtonText();
-        });
-        
-        input.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                updateSizeButtonText();
-                // Close the dropdown
-                document.getElementById('propertySizeDropdown').classList.remove('show');
-                document.getElementById('propertySizeBtn').classList.remove('active');
-            }
-        });
-    });
-    
-    function updateSizeButtonText() {
-        const minValue = document.getElementById('size_min').value;
-        const maxValue = document.getElementById('size_max').value;
-        const propertySizeBtn = document.getElementById('propertySizeBtn');
-        
-        if (minValue && maxValue) {
-            propertySizeBtn.innerHTML = '<i class="fas fa-ruler-combined"></i> ' + minValue + ' - ' + maxValue + ' sq ft <i class="fas fa-chevron-down"></i>';
-        } else if (minValue) {
-            propertySizeBtn.innerHTML = '<i class="fas fa-ruler-combined"></i> Min ' + minValue + ' sq ft <i class="fas fa-chevron-down"></i>';
-        } else if (maxValue) {
-            propertySizeBtn.innerHTML = '<i class="fas fa-ruler-combined"></i> Max ' + maxValue + ' sq ft <i class="fas fa-chevron-down"></i>';
-        } else {
-            propertySizeBtn.innerHTML = '<i class="fas fa-ruler-combined"></i> Property Size <i class="fas fa-chevron-down"></i>';
-        }
-    }
-    
-    // Bedroom buttons - update More Filters button text
-    const bedroomBtns = document.querySelectorAll('.bedroom-btn');
-    bedroomBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all bedroom buttons
-            bedroomBtns.forEach(b => b.classList.remove('active'));
-            
-            // Add active class to this button
-            this.classList.add('active');
-            
-            // Set the hidden input value
-            document.getElementById('min_bedrooms').value = this.getAttribute('data-value');
-            
-            // Update the More Filters button text
-            updateMoreFiltersButtonText();
-        });
-    });
-    
-    // Property status checkboxes - update More Filters button text
-    document.querySelectorAll('input[name="status[]"]').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            updateMoreFiltersButtonText();
-        });
-    });
-    
-    function updateMoreFiltersButtonText() {
-        const moreFiltersBtn = document.getElementById('moreFiltersBtn');
-        const selectedFilters = [];
-        
-        // Check bedrooms
-        const minBedrooms = document.getElementById('min_bedrooms').value;
-        if (minBedrooms) {
-            selectedFilters.push(minBedrooms + '+ BHK');
-        }
-        
-        // Check status
-        const statusCheckboxes = document.querySelectorAll('input[name="status[]"]:checked');
-        if (statusCheckboxes.length > 0) {
-            const statusLabels = [];
-            statusCheckboxes.forEach(checkbox => {
-                statusLabels.push(checkbox.value.charAt(0).toUpperCase() + checkbox.value.slice(1));
-            });
-            
-            if (statusLabels.length === 1) {
-                selectedFilters.push(statusLabels[0]);
-            } else {
-                selectedFilters.push(statusLabels.length + ' Statuses');
+            if (isSticky) {
+                filtersSection.classList.remove('sticky-filters');
+                isSticky = false;
             }
         }
-        
-        if (selectedFilters.length > 0) {
-            moreFiltersBtn.innerHTML = '<i class="fas fa-sliders-h"></i> ' + selectedFilters.join(', ') + ' <i class="fas fa-chevron-down"></i>';
-        } else {
-            moreFiltersBtn.innerHTML = '<i class="fas fa-sliders-h"></i> More Filters <i class="fas fa-chevron-down"></i>';
-        }
     }
     
-    // Initialize button texts based on current values
-    function initializeButtonTexts() {
-        // Property Type
-        const selectedPropertyType = document.querySelector('input[name="property_type"]:checked');
-        if (selectedPropertyType && selectedPropertyType.value !== '') {
-            const label = document.querySelector('label[for="type-' + selectedPropertyType.value + '"]').textContent;
-            document.getElementById('propertyTypeBtn').innerHTML = '<i class="fas fa-home"></i> ' + label + ' <i class="fas fa-chevron-down"></i>';
-        }
-        
-        // Price Range
-        updatePriceButtonText();
-        
-        // Size Range
-        updateSizeButtonText();
-        
-        // More Filters
-        updateMoreFiltersButtonText();
-    }
+    window.addEventListener('scroll', handleScroll);
     
-    // Helper function to format price for display
-    function formatIndianPrice(price) {
-        price = parseInt(price);
-        if (price >= 10000000) { // 1 crore
-            return (price / 10000000).toFixed(2) + ' Cr';
-        } else if (price >= 100000) { // 1 lakh
-            return (price / 100000).toFixed(2) + ' L';
-        } else {
-            return new Intl.NumberFormat('en-IN').format(price);
-        }
-    }
+    // Hide scroll hint after user scrolls
+    const filtersContainer = document.getElementById('filters-container');
+    const scrollHint = document.getElementById('scroll-hint');
     
-    // Initialize with current values
-    initializeButtonTexts();
-    
-    // Initialize filter tags with remove functionality
-    document.querySelectorAll('.filter-tag-remove').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const filterType = this.getAttribute('data-filter');
-            if (filterType) {
-                if (filterType === 'property_type') {
-                    const input = document.querySelector('input[name="property_type"][value=""]');
-                    if (input) {
-                        input.checked = true;
-                        document.getElementById('propertyTypeBtn').innerHTML = '<i class="fas fa-home"></i> Property Type <i class="fas fa-chevron-down"></i>';
-                    }
-                } else if (filterType === 'price') {
-                    document.getElementById('price_min').value = '';
-                    document.getElementById('price_max').value = '';
-                    document.getElementById('priceRangeBtn').innerHTML = '<i class="fas fa-rupee-sign"></i> Price Range <i class="fas fa-chevron-down"></i>';
-                } else if (filterType === 'size') {
-                    document.getElementById('size_min').value = '';
-                    document.getElementById('size_max').value = '';
-                    document.getElementById('propertySizeBtn').innerHTML = '<i class="fas fa-ruler-combined"></i> Property Size <i class="fas fa-chevron-down"></i>';
-                } else if (filterType === 'bedrooms') {
-                    document.getElementById('min_bedrooms').value = '';
-                    updateMoreFiltersButtonText();
-                } else if (filterType.startsWith('status-')) {
-                    const statusValue = filterType.replace('status-', '');
-                    const input = document.querySelector(`input[name="status[]"][value="${statusValue}"]`);
-                    if (input) {
-                        input.checked = false;
-                        updateMoreFiltersButtonText();
-                    }
-                }
-                
-                // Submit form after removing filter
-                document.getElementById('searchForm').submit();
+    if (filtersContainer && scrollHint) {
+        filtersContainer.addEventListener('scroll', function() {
+            filtersContainer.classList.add('scrolled');
+        }, { once: true });
+        
+        // Auto-hide scroll hint after 4 seconds
+        setTimeout(() => {
+            if (scrollHint) {
+                scrollHint.style.opacity = '0';
             }
+        }, 4000);
+    }
+    
+    // Share functionality
+    const shareBtns = document.querySelectorAll('.share-btn');
+    shareBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const propertyId = this.getAttribute('data-property-id');
+            shareProperty(propertyId);
         });
     });
 });
+
+function shareProperty(propertyId) {
+    const url = window.location.origin + 'property-details.php?id=' + propertyId;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'Check out this property',
+            url: url
+        });
+    } else {
+        navigator.clipboard.writeText(url).then(function() {
+            alert('Property link copied to clipboard!');
+        });
+    }
+}
 </script>
+
+<?php include 'footer.php'; ?>
 <style>
-    /* 
-    * Consolidated and Fixed Filter Styles 
-    * Resolves dropdown display issues
-    */
-
-    /* Search Section */
-    .search-section {
-        background-color: #f5f8fa;
-        padding: 35px 0;
-        margin-bottom: 35px;
-        background-image: linear-gradient(to bottom, #e6eef1, #f5f8fa);
-    }
-
-    .search-container {
-        background-color: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        padding: 30px;
-        transition: box-shadow 0.3s ease;
-    }
-
-    .search-container:hover {
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-    }
-
-    /* Search Input */
-    .search-input {
-        display: flex;
-        margin-bottom: 25px;
-        position: relative;
-    }
-
-    .search-input input {
-        flex: 1;
-        padding: 14px 20px 14px 40px;
-        border: 2px solid #e0e6ed;
-        border-radius: 8px 0 0 8px;
-        font-size: 16px;
-        transition: all 0.3s ease;
-        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    .search-input input:focus {
-        border-color: #3498db;
-        box-shadow: inset 0 1px 3px rgba(52, 152, 219, 0.2);
-        outline: none;
-    }
-
-    .search-input::before {
-        content: "\f002";
-        font-family: "Font Awesome 5 Free";
-        font-weight: 900;
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #7f8c8d;
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    .search-btn {
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 0 8px 8px 0;
-        padding: 0 25px;
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
-    }
-
-    .search-btn:hover {
-        background-color: #2980b9;
-        box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
-        transform: translateY(-1px);
-    }
-
-    .search-btn:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 3px rgba(52, 152, 219, 0.3);
-    }
-
-    /* Filter Section */
-    .search-filters-label {
-        display: block;
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 15px;
-        color: #34495e;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 10px;
-    }
-
-    .search-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        align-items: center;
-        margin-bottom: 10px;
-        position: relative;
-    }
-
-    .search-filters:after {
-        content: "";
-        display: block;
-        width: 100%;
-        margin-top: 20px;
-    }
-
-    /* Filter Dropdowns - FIXED VERSION */
-    .filter-dropdown {
-        position: relative;
-        display: inline-block;
-        margin-bottom: 8px;
-        flex: 1;
-        min-width: 200px;
-    }
-
-    .dropdown-btn {
-        background-color: #ffffff;
-        border: 2px solid #e0e6ed;
-        padding: 12px 18px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 15px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.3s ease;
-        width: 100%;
-        color: #34495e;
-        position: relative;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    .dropdown-btn:hover {
-        border-color: #bdc3c7;
-        background-color: #f9f9f9;
-    }
-
-    .dropdown-btn.active {
-        border-color: #3498db;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-
-    .dropdown-btn i {
-        color: #7f8c8d;
-    }
-
-    .dropdown-btn i.fa-chevron-down {
-        margin-left: auto;
-        transition: transform 0.3s ease;
-    }
-
-    .dropdown-btn.active i.fa-chevron-down {
-        transform: rotate(180deg);
-    }
-
-    .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: white;
-        min-width: 250px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        border-radius: 8px;
-        padding: 20px;
-        z-index: 20;
-        top: calc(100% + 10px);
-        left: 0;
-        border: 1px solid #e0e6ed;
-        width: 100%;
-    }
-
-    .dropdown-content.show {
-        display: block;
-    }
-
-    /* Dropdown Arrow */
-    .dropdown-content:before {
-        content: "";
-        position: absolute;
-        top: -8px;
-        left: 20px;
-        width: 16px;
-        height: 16px;
-        background-color: white;
-        transform: rotate(45deg);
-        border-top: 1px solid #e0e6ed;
-        border-left: 1px solid #e0e6ed;
-    }
-
-    .filter-option {
-        margin-bottom: 12px;
-        display: flex;
-        align-items: center;
-    }
-
-    .filter-option:last-child {
-        margin-bottom: 0;
-    }
-
-    .filter-option input[type="radio"],
-    .filter-option input[type="checkbox"] {
-        margin-right: 10px;
-        appearance: none;
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        border: 2px solid #bdc3c7;
-        border-radius: 50%;
-        outline: none;
-        cursor: pointer;
-        position: relative;
-        transition: all 0.2s ease;
-    }
-
-    .filter-option input[type="checkbox"] {
-        border-radius: 4px;
-    }
-
-    .filter-option input[type="radio"]:checked,
-    .filter-option input[type="checkbox"]:checked {
-        border-color: #3498db;
-        background-color: #3498db;
-    }
-
-    .filter-option input[type="radio"]:checked:after,
-    .filter-option input[type="checkbox"]:checked:after {
-        content: "";
-        position: absolute;
-    }
-
-    .filter-option input[type="radio"]:checked:after {
-        width: 8px;
-        height: 8px;
-        background-color: white;
-        border-radius: 50%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-    }
-
-    .filter-option input[type="checkbox"]:checked:after {
-        content: "✓";
-        font-size: 12px;
-        color: white;
-        position: absolute;
-        top: -1px;
-        left: 3px;
-    }
-
-    .filter-option label {
-        margin-left: 5px;
-        font-size: 14px;
-        color: #34495e;
-        cursor: pointer;
-    }
-
-    /* Range Filter */
-    .range-filter {
-        display: flex;
+ .property-actions {
+        justify-content: flex-end;
+        margin-top: 0.75rem;
+    }    .property-header {
         flex-direction: column;
-        gap: 15px;
-    }
+        align-items: flex-start;
+        gap: 0.25rem;
+        margin-bottom: 0.75rem;
+    }/* Single Line Filters - Desktop & Mobile Responsive CSS */
 
-    .range-filter-title {
-        font-weight: 600;
-        font-size: 15px;
-        color: #34495e;
-        margin-bottom: 10px;
-    }
-
-    .range-inputs {
-        display: flex;
-        gap: 12px;
-    }
-
-    .range-group {
-        flex: 1;
-    }
-
-    .range-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 14px;
-        color: #7f8c8d;
-    }
-
-    .range-group input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 2px solid #e0e6ed;
-        border-radius: 6px;
-        font-size: 14px;
-        transition: all 0.3s ease;
-    }
-
-    .range-group input:focus {
-        border-color: #3498db;
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-    }
-
-    /* Quick Range Buttons */
-    .quick-ranges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 5px;
-    }
-
-    .quick-range-btn {
-        background-color: #f0f5fa;
-        border: 1px solid #dbe4ee;
-        border-radius: 20px;
-        padding: 6px 14px;
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #34495e;
-    }
-
-    .quick-range-btn:hover {
-        background-color: #e4edf5;
-        border-color: #bdc9d7;
-    }
-
-    .quick-range-btn.active {
-        background-color: #3498db;
-        color: white;
-        border-color: #3498db;
-    }
-
-    /* Filter Action Buttons */
-    .filter-actions {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 25px;
-        gap: 15px;
-    }
-
-    .apply-filters-btn {
-        background-color: #27ae60;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 12px 24px;
-        cursor: pointer;
-        font-size: 15px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        flex: 3;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        box-shadow: 0 2px 5px rgba(39, 174, 96, 0.3);
-    }
-
-    .apply-filters-btn:hover {
-        background-color: #219653;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
-    }
-
-    .apply-filters-btn:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 3px rgba(39, 174, 96, 0.3);
-    }
-
-    .reset-filters-btn {
-        background-color: #f8f9fa;
-        color: #e74c3c;
-        border: 2px solid #e74c3c;
-        border-radius: 8px;
-        padding: 12px 20px;
-        cursor: pointer;
-        font-size: 15px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .reset-filters-btn:hover {
-        background-color: #fff2f2;
-        color: #c0392b;
-        border-color: #c0392b;
-    }
-
-    .reset-filters-btn i {
-        font-size: 14px;
-    }
-
-    /* Active Filter Tags */
-    .active-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin: 15px 0;
-    }
-
-    .filter-tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background-color: #e8f4fd;
-        border: 1px solid #c5e2f9;
-        border-radius: 20px;
-        padding: 6px 14px;
-        font-size: 14px;
-        color: #2980b9;
-    }
-
-    .filter-tag-label {
-        font-weight: 600;
-    }
-
-    .filter-tag-remove {
-        background: none;
-        border: none;
-        color: #2980b9;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        transition: all 0.2s ease;
-    }
-
-    .filter-tag-remove:hover {
-        background-color: #c5e2f9;
-        color: #2c3e50;
-    }
-
-    /* Properties Grid */
-    .properties-count {
-        margin-bottom: 20px;
-        font-size: 16px;
-        color: #666;
-    }
-
-
-    .property-card {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        transition: transform 0.3s, box-shadow 0.3s;
-        position: relative;
-    }
-
-    .property-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    }
-
-
-
-    .property-card:hover .property-images img {
-        transform: scale(1.05);
-    }
-
-    .property-info {
-        padding: 20px;
-    }
-
-    .property-info h3 {
-        margin: 0 0 10px;
-        font-size: 18px;
-        line-height: 1.3;
-    }
-
-    .property-price {
-        color: #27ae60;
-        font-size: 20px;
-        font-weight: bold;
-        margin-bottom: 15px;
-    }
-
-    .property-details-row {
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        margin-bottom: 15px;
-        font-size: 14px;
-        color: #777;
-    }
-
-    .property-details-row span {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .property-location {
-        color: #777;
-        font-size: 14px;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .view-details-btn {
-        display: block;
-        background-color: #2c3e50;
-        color: white;
-        text-align: center;
-        padding: 10px;
-        border-radius: 4px;
-        text-decoration: none;
-        transition: background-color 0.3s;
-    }
-
-    .view-details-btn:hover {
-        background-color: #1a252f;
-    }
-
-    /* Property Status Indicators */
-    .property-status {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        z-index: 5;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        color: white;
-    }
-
-    .status-available {
-        background-color: #27ae60;
-    }
-
-    .status-sold {
-        background-color: #e74c3c;
-    }
-
-    .status-pending {
-        background-color: #f39c12;
-    }
-
-    .status-rented {
-        background-color: #3498db;
-    }
-
-    /* Featured Property Indicator */
-    .property-featured {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 100px;
-        height: 100px;
-        overflow: hidden;
-        z-index: 1;
-    }
-
-    .property-featured::before {
-        content: 'Featured';
-        position: absolute;
-        display: block;
-        width: 150px;
-        padding: 5px 0;
-        background-color: #e74c3c;
-        color: #fff;
-        font-size: 12px;
-        font-weight: bold;
-        text-align: center;
-        right: -35px;
-        top: 30px;
-        transform: rotate(45deg);
-    }
-
-    /* Pagination */
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-top: 30px;
-    }
-
-    .pagination a, .pagination-dots {
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        min-width: 40px;
-        height: 40px;
-        margin: 0 5px;
-        color: #333;
-        text-decoration: none;
-        border-radius: 4px;
-        transition: background-color 0.3s;
-    }
-
-    .pagination a:not(.prev):not(.next) {
-        background-color: #f5f8fa;
-        border: 1px solid #ddd;
-    }
-
-    .pagination a.active {
-        background-color: #2c3e50;
-        color: white;
-    }
-
-    .pagination a:hover:not(.active) {
-        background-color: #e5e5e5;
-    }
-
-    .pagination .prev, .pagination .next {
-        background-color: transparent;
-        font-weight: bold;
-    }
-
-    .pagination i {
-        margin: 0 5px;
-    }
-
-
-
-    .search-results-info {
-        margin-top: 10px;
-        font-size: 16px;
-        color: #666;
-    }
-
-    /* Mobile Responsive */
-    @media (max-width: 768px) {
-        .search-input {
-            flex-direction: column;
-        }
-        
-        .search-input input {
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-        
-        .search-btn {
-            border-radius: 8px;
-            width: 100%;
-            padding: 14px;
-        }
-        
-        .search-filters {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
-        .filter-dropdown {
-            width: 100%;
-            min-width: 100%;
-        }
-        
-        .dropdown-content {
-            width: 100%;
-            position: relative;
-            top: 10px;
-            left: 0;
-            right: 0;
-        }
-        
-        .dropdown-content:before {
-            display: none;
-        }
-        
-        .range-inputs {
-            flex-direction: column;
-        }
-        
-        .filter-actions {
-            flex-direction: column;
-        }
-        
-        .apply-filters-btn, .reset-filters-btn {
-            width: 100%;
-        }
-        
-        .active-filters {
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .filter-tag {
-            width: 100%;
-            justify-content: space-between;
-        }
-    }
-    /* Updated Property Card Styles with Fixed Image Size */
-
-/* Property Card Container */
-.property-card {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    transition: transform 0.3s, box-shadow 0.3s;
+/* Search Filters Section */
+.search-filters-section {
+    background: #f8f9fa;
+    padding: 1rem 0;
+    border-bottom: 1px solid #dee2e6;
+    transition: all 0.3s ease;
+    z-index: 100;
     position: relative;
+}
+
+.search-filters-section.sticky-filters {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(248, 249, 250, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+    padding: 0.75rem 0;
+    z-index: 1000;
+}
+
+.search-filters-form {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+}
+
+.sticky-filters .search-filters-form {
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+/* Single Line Layout for All Devices */
+.filters-wrapper {
     display: flex;
-    flex-direction: column;
-    height: 100%;
+    gap: 1rem;
+    align-items: center;
+    position: relative;
+}
+
+.filters-container {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0.25rem 0;
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.filters-container::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-group {
+    flex-shrink: 0;
+    min-width: fit-content;
+}
+
+.filter-group.search-input {
+    min-width: 200px;
+    max-width: 250px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+}
+
+.form-control {
+    border: 1px solid #007bff;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    background: #fff;
+    transition: all 0.3s ease;
+    width: 100%;
+    min-width: 140px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.15);
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #999;
+}
+
+.form-control option {
+    padding: 0.5rem;
+}
+
+/* Action Buttons */
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    gap: 0.5rem;
+    min-width: fit-content;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    border-color: #0056b3;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+}
+
+.btn-outline {
+    background: transparent;
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-outline:hover {
+    background: #007bff;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+}
+
+/* Scroll Indicator */
+.scroll-hint {
+    position: absolute;
+    right: 180px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(90deg, transparent, rgba(248,249,250,0.9));
+    color: #007bff;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    pointer-events: none;
+    opacity: 0.7;
+    border-radius: 4px;
+    transition: opacity 0.3s ease;
+}
+
+.filters-container.scrolled .scroll-hint {
+    opacity: 0;
+}
+
+/* Results Section */
+.properties-results-section {
+    padding: 3rem 0;
+}
+
+.sticky-filters ~ .properties-results-section {
+    padding-top: 4rem;
+}
+
+@media (max-width: 768px) {
+    .sticky-filters ~ .properties-results-section {
+        padding-top: 5rem;
+    }
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.results-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    font-size: 1.5rem;
+}
+
+.results-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.search-term {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+/* Properties Grid */
+.properties-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.property-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    cursor: pointer;
 }
 
 .property-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
 }
 
-/* Fixed Size Property Image Container */
+.property-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.featured-badge {
+    background: linear-gradient(45deg, #ff6b6b, #feca57);
+    color: white;
+}
+
+.property-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-buy {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-rent {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-sold {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-rented {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
 .property-images {
-    height: 220px; /* Fixed height */
-    overflow: hidden;
     position: relative;
-    flex-shrink: 0; /* Prevent image container from shrinking */
-    background-color: #f8f8f8; /* Background color for images with transparency */
+    height: 250px;
+    overflow: hidden;
 }
 
-/* Image Fit and Positioning */
 .property-images img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* Changed from 'cover' to 'contain' to show full image */
+    object-fit: cover;
     transition: transform 0.3s ease;
-    position: relative;
-    z-index: 1;
-}
-
-/* Add subtle gradient overlay to bottom of image for better text contrast */
-.property-images::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 50px;
-    background: linear-gradient(to top, rgba(0,0,0,0.2), transparent);
-    z-index: 2;
-    pointer-events: none;
 }
 
 .property-card:hover .property-images img {
     transform: scale(1.05);
 }
 
-/* Property Information */
-.property-info {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1; /* Allow info section to grow and fill space */
+.image-count {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
 }
 
-.property-info h3 {
-    margin: 0 0 10px;
-    font-size: 18px;
+.property-info {
+    padding: 1.5rem;
+}
+
+.property-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.property-title {
+    margin: 0;
+    font-size: 1.2rem;
     line-height: 1.3;
-    color: #2c3e50;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    height: 2.6em; /* Fixed height for title to ensure alignment */
+    flex: 1;
+    color: #333;
+    transition: color 0.3s ease;
+}
+
+.property-card:hover .property-title {
+    color: #007bff;
 }
 
 .property-price {
-    color: #27ae60;
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 15px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #28a745;
+    white-space: nowrap;
 }
 
-/* Property Details Row */
-.property-details-row {
-    display: flex;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    margin-bottom: 15px;
-    font-size: 14px;
-    color: #777;
-    gap: 8px;
-}
-
-.property-details-row span {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex: 1;
-    min-width: 80px;
-}
-
-.property-details-row span i {
-    color: #3498db;
-    font-size: 16px;
-    width: 16px;
-    text-align: center;
-}
-
-/* Property Location */
 .property-location {
-    color: #777;
-    font-size: 14px;
-    margin-bottom: 15px;
+    color: #666;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
     display: flex;
     align-items: flex-start;
-    gap: 5px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    gap: 0.5rem;
 }
 
 .property-location i {
-    color: #e74c3c;
+    color: #007bff;
+    margin-top: 0.1rem;
     flex-shrink: 0;
-    margin-top: 2px;
 }
 
-/* View Details Button */
-.view-details-btn {
-    display: block;
-    background-color: #2c3e50;
-    color: white;
+.property-details-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.property-detail,
+.property-type {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.property-detail i,
+.property-type i {
+    margin-right: 0.25rem;
+    color: #007bff;
+    width: 14px;
+    flex-shrink: 0;
+}
+
+.property-facing {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+.property-facing i {
+    margin-right: 0.5rem;
+    color: #007bff;
+}
+
+
+
+.property-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.instagram-btn,
+.share-btn {
+    padding: 0.5rem;
+    min-width: 45px;
     text-align: center;
-    padding: 12px;
-    border-radius: 6px;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    margin-top: auto; /* Push button to bottom */
-    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.view-details-btn:hover {
-    background-color: #1a252f;
+.instagram-btn {
+    background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%);
+    color: white;
+    border: none;
+}
+
+.instagram-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.view-details-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Property Status Indicators */
-.property-status {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    z-index: 5;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: bold;
     color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.status-available {
-    background-color: #27ae60;
-}
-
-.status-sold {
-    background-color: #e74c3c;
-}
-
-.status-pending {
-    background-color: #f39c12;
-}
-
-.status-rented {
-    background-color: #3498db;
-}
-
-/* Featured Property Indicator */
-.property-featured {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100px;
-    height: 100px;
-    overflow: hidden;
-    z-index: 3;
-}
-
-.property-featured::before {
-    content: 'Featured';
-    position: absolute;
-    display: block;
-    width: 150px;
-    padding: 6px 0;
-    background-color: #e74c3c;
-    color: #fff;
-    font-size: 12px;
-    font-weight: bold;
+/* No Results */
+.no-results {
     text-align: center;
-    right: -35px;
-    top: 30px;
-    transform: rotate(45deg);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 4rem 2rem;
 }
 
-/* Loading Placeholder for Images */
-.property-images.loading {
+.no-results-content i {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+}
+
+.no-results-content h3 {
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+.no-results-content p {
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+/* Pagination */
+.pagination-container {
     display: flex;
     justify-content: center;
-    align-items: center;
-    position: relative;
+    margin-top: 3rem;
 }
 
-.property-images.loading::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #f5f5f5;
-    z-index: 0;
+.pagination {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
-.property-images.loading::after {
-    content: '';
-    width: 40px;
-    height: 40px;
-    border: 4px solid #ddd;
-    border-top: 4px solid #3498db;
-    border-radius: 50%;
-    z-index: 1;
-    animation: spin 1s linear infinite;
+.page-item .page-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    color: #007bff;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    min-width: 45px;
+    text-align: center;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.page-item:hover .page-link:not(.disabled) {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+    transform: translateY(-1px);
 }
 
-/* Responsive Adjustments */
-@media (max-width: 992px) {
-    .grid-container {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    }
+.page-item.active .page-link {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
 }
 
+.page-item.disabled .page-link {
+    color: #6c757d;
+    background: #fff;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+}
+
+/* Mobile Responsive */
 @media (max-width: 768px) {
-    .property-images {
-        height: 200px;
+    .search-filters-section {
+        padding: 0.75rem 0;
     }
     
-    .property-info h3 {
-        font-size: 16px;
+    .search-filters-section.sticky-filters {
+        padding: 0.5rem 0;
     }
-}
-
-@media (max-width: 576px) {
+    
+    .search-filters-form {
+        padding: 0.75rem;
+        margin: 0 0.5rem;
+    }
+    
+    .sticky-filters .search-filters-form {
+        padding: 0.5rem;
+    }
+    
+    .filters-wrapper {
+        gap: 0.75rem;
+    }
+    
+    .filters-container {
+        gap: 0.5rem;
+        margin-right: 0.75rem;
+    }
+    
+    .filter-group.search-input {
+        min-width: 150px;
+        max-width: 180px;
+    }
+    
+    .form-control {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+        min-width: 120px;
+    }
+    
+    .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .btn .btn-text {
+        display: none;
+    }
+    
+    .scroll-hint {
+        right: 140px;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .properties-results-section {
+        padding: 2rem 0;
+    }
+    
+    .sticky-filters ~ .properties-results-section {
+        padding-top: 5rem;
+    }
+    
+    .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+    }
+    
+    .results-info h3 {
+        font-size: 1.3rem;
+    }
+    
+    .properties-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin: 0 0.5rem 3rem;
+    }
+    
+    .property-card {
+        border-radius: 10px;
+    }
+    
     .property-images {
         height: 180px;
     }
     
-    .property-details-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+    .property-info {
+        padding: 1rem 0.75rem;
     }
     
-    .property-details-row span {
-        min-width: 100%;
+    .property-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .property-title {
+        font-size: 1rem;
+        line-height: 1.2;
+    }
+    
+    .property-price {
+        font-size: 1rem;
+        margin-top: 0.25rem;
+    }
+    
+    .property-location {
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .property-details-row {
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .property-detail,
+    .property-type {
+        font-size: 0.8rem;
+    }
+    
+    .property-facing {
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .property-actions {
+        justify-content: center;
+        margin-top: 0.75rem;
+    }
+    
+    .instagram-btn,
+    .share-btn {
+        display: flex;
+        min-width: 35px;
+        padding: 0.4rem;
+    }
+    
+    .pagination {
+        gap: 0.25rem;
+        margin: 0 1rem;
+    }
+    
+    .page-item .page-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        min-width: 40px;
     }
 }
 
-/* No Properties Found Message */
-.no-properties-found {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 50px 20px;
-    color: #777;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+@media (max-width: 480px) {
+    .search-filters-form {
+        margin: 0 0.25rem;
+        padding: 0.5rem;
+    }
+    
+    .filters-wrapper {
+        gap: 0.5rem;
+    }
+    
+    .filters-container {
+        gap: 0.4rem;
+        margin-right: 0.5rem;
+    }
+    
+    .filter-group.search-input {
+        min-width: 130px;
+        max-width: 150px;
+    }
+    
+    .form-control {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.8rem;
+        min-width: 100px;
+    }
+    
+    .btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .scroll-hint {
+        right: 120px;
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .properties-grid {
+        margin: 0 0.25rem 3rem;
+        gap: 0.75rem;
+    }
+    
+    .property-images {
+        height: 160px;
+    }
+    
+    .property-info {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .property-title {
+        font-size: 0.9rem;
+    }
+    
+    .property-price {
+        font-size: 0.9rem;
+    }
+    
+    .property-location {
+        font-size: 0.75rem;
+    }
+    
+    .property-detail,
+    .property-type {
+        font-size: 0.75rem;
+    }
+    
+    .property-actions {
+        margin-top: 0.5rem;
+    }
+    
+    .instagram-btn,
+    .share-btn {
+        min-width: 30px;
+        padding: 0.3rem;
+    }
 }
 
-.no-properties-found p {
-    font-size: 18px;
-    margin-bottom: 20px;
+/* Medium Screens */
+@media (min-width: 769px) and (max-width: 999px) {
+    .properties-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .property-images {
+        height: 220px;
+    }
+    
+    .property-title {
+        font-size: 1.1rem;
+    }
+    
+    .property-price {
+        font-size: 1.1rem;
+    }
 }
-</style>
-<?php include 'footer.php'?>
+
+/* Large Desktop */
+@media (min-width: 1000px) and (max-width: 1199px) {
+    .properties-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .property-images {
+        height: 210px;
+    }
+    
+    .property-title {
+        font-size: 1.1rem;
+    }
+    
+    .property-price {
+        font-size: 1.2rem;
+    }
+    
+    .property-actions {
+        justify-content: flex-end;
+        margin-top: 0.75rem;
+    }
+}
+
+/* Large Screens */
+@media (min-width: 1200px) {
+    .properties-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+    
+    .filter-group.search-input {
+        min-width: 250px;
+        max-width: 300px;
+    }
+    
+    .property-images {
+        height: 200px;
+    }
+    
+    .property-title {
+        font-size: 1.1rem;
+    }
+    
+    .property-price {
+        font-size: 1.2rem;
+    }
+}
+
+/* Extra Large Screens */
+@media (min-width: 1400px) {
+    .properties-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+    }
+    
+    .property-images {
+        height: 220px;
+    }
+    
+    .property-title {
+        font-size: 1.2rem;
+    }
+    
+    .property-price {
+        font-size: 1.3rem;
+    }
+}
+    </style>

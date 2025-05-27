@@ -276,6 +276,22 @@ function formatRentPrice($price) {
     }
 }
 
+// Helper function to get property image URL
+function getPropertyImageUrl($image_path) {
+    if (empty($image_path)) {
+        return 'assets/images/no-image.jpg';
+    }
+    
+    if (strpos($image_path, 'http://') === 0 || strpos($image_path, 'https://') === 0) {
+        return $image_path;
+    }
+    
+    if (strpos($image_path, '/') === 0) {
+        $image_path = substr($image_path, 1);
+    }
+    
+    return $image_path;
+}
 
 // Helper function to get status info
 function getStatusInfo($status) {

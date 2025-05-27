@@ -1,0 +1,239 @@
+/* Footer Styles */
+:root {
+  /* Real estate themed colors */
+  --primary-color: #3f51b5;
+  --primary-dark: #303f9f;
+  --secondary-color: #4caf50;
+  --accent-color: #ff9800;
+  
+  /* Neutral colors */
+  --white: #ffffff;
+  --light-gray: #f5f7fa;
+  --text-dark: #333333;
+  --text-light: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.2);
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  
+  /* Navbar heights */
+  --navbar-height: 60px;
+  --mobile-header-height: 140px;
+  --mobile-navbar-height: 60px;
+  
+  /* Other */
+  --border-radius: 4px;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --transition: 0.2s ease;
+}
+
+/* Main Footer */
+.footer {
+  background-color: var(--primary-dark);
+  color: var(--text-light);
+  padding: var(--space-lg) 0 0;
+  position: relative;
+  z-index: 10;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.footer-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+/* Footer Columns */
+.footer-column {
+  flex: 1;
+  margin-right: var(--space-lg);
+  min-width: 250px;
+  margin-bottom: var(--space-lg);
+}
+
+.footer-column:last-child {
+  margin-right: 0;
+}
+
+.footer-logo {
+  margin-bottom: var(--space-md);
+}
+
+.footer-logo img {
+  max-width: 140px;
+  height: auto;
+  border-radius: 50%;
+}
+
+.footer-desc {
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Footer Social Icons */
+.footer-social {
+  display: flex;
+  margin-top: var(--space-md);
+}
+
+.social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  border-radius: 50%;
+  margin-right: var(--space-sm);
+  transition: var(--transition);
+}
+
+.social-icon:hover {
+  background-color: var(--accent-color);
+  transform: translateY(-3px);
+}
+
+/* Footer Headings */
+.footer-column h4 {
+  color: var(--white);
+  font-size: 1.2rem;
+  margin-bottom: var(--space-md);
+  position: relative;
+  padding-bottom: var(--space-sm);
+}
+
+.footer-column h4::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 50px;
+  height: 2px;
+  background-color: var(--secondary-color);
+}
+
+/* Footer Links */
+.footer-links {
+  list-style: none;
+  padding: 0;
+}
+
+.footer-link {
+  margin-bottom: var(--space-sm);
+}
+
+.footer-link a {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.8);
+  transition: var(--transition);
+}
+
+.footer-link a i {
+  font-size: 0.8rem;
+  margin-right: var(--space-sm);
+  color: var(--secondary-color);
+}
+
+.footer-link a:hover {
+  color: var(--white);
+  transform: translateX(5px);
+}
+
+/* Contact Info */
+.footer-contact-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-contact-item i {
+  margin-right: var(--space-sm);
+  min-width: 20px;
+  color: var(--secondary-color);
+  margin-top: 4px;
+}
+
+.footer-contact-item span {
+  flex: 1;
+  line-height: 1.5;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-copyright {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-bottom-links {
+  display: flex;
+}
+
+.footer-bottom-link {
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: var(--space-md);
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.footer-bottom-link:hover {
+  color: var(--white);
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+  .footer-content {
+    flex-wrap: wrap;
+  }
+  
+  .footer-column {
+    flex: 0 0 calc(50% - var(--space-md));
+    margin-right: var(--space-md);
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-column {
+    flex: 0 0 100%;
+    margin-right: 0;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .footer-copyright {
+    margin-bottom: var(--space-sm);
+  }
+  
+  .footer-bottom-links {
+    justify-content: center;
+  }
+  
+  .footer-bottom-link {
+    margin: 0 var(--space-sm);
+  }
+}

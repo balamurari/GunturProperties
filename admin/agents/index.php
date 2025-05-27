@@ -14,9 +14,7 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-// --- Admin Authentication Check ---
-// Ensure only logged-in admins can access this page
-// requireAdmin(); // Use your function from functions.php
+
 
 // --- Page Setup ---
 $page_title = 'Manage Agents';

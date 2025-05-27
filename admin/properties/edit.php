@@ -81,6 +81,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $featured = isset($_POST['featured']) ? 1 : 0;
     $status = sanitize($_POST['status']);
     
+    // Process Instagram URL and Phone Number
+    $instagram_url = !empty($_POST['instagram_url']) ? sanitize($_POST['instagram_url']) : '';
+    $phone_number = !empty($_POST['phone_number']) ? sanitize($_POST['phone_number']) : '';
+
+    // Validate Instagram URL
+    if (!empty($instagram_url)) {
+        // Ensure it's a valid URL format
+        if (!filter_var($instagram_url, FILTER_VALIDATE_URL)) {
+            $errors[] = 'Instagram URL must be a valid URL';
+        }
+        
+        // Check if the URL contains instagram.com
+        if (strpos($instagram_url, 'instagram.com') === false) {
+            $errors[] = 'Instagram URL must be from instagram.com';
+        }
+        
+        // Check length - Instagram URLs shouldn't exceed 255 chars
+        if (strlen($instagram_url) > 255) {
+            $errors[] = 'Instagram URL is too long (max 255 characters)';
+        }
+    }
+
+    // Validate Phone Number
+    if (!empty($phone_number)) {
+        // Strip non-numeric characters for validation
+        $stripped_phone = preg_replace('/[^0-9]/', '', $phone_number);
+        
+        // Check phone number length (India: typically 10 digits)
+        if (strlen($stripped_phone) < 10 || strlen($stripped_phone) > 12) {
+            $errors[] = 'Phone number must be 10-12 digits';
+        }
+        
+        // Verify string length for database
+        if (strlen($phone_number) > 20) {
+            $errors[] = 'Phone number is too long (max 20 characters)';
+        }
+    }
+    
     // Optional fields - careful NULL handling
     // Bedrooms
     if (isset($_POST['bedrooms']) && $_POST['bedrooms'] !== '') {
@@ -190,6 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 area_unit = :area_unit, 
                 type_id = :type_id, 
                 agent_id = " . ($agent_id === null ? "NULL" : ":agent_id") . ", 
+                instagram_url = :instagram_url,
+                phone_number = :phone_number,
                 featured = :featured, 
                 status = :status,
                 updated_at = NOW()
@@ -209,7 +249,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->bind(':zip_code', $zip_code);
             $db->bind(':area_unit', $area_unit);
             $db->bind(':type_id', $type_id);
-          
+            $db->bind(':instagram_url', $instagram_url);
+            $db->bind(':phone_number', $phone_number);
             $db->bind(':featured', $featured);
             $db->bind(':status', $status);
             $db->bind(':id', $property_id);
@@ -452,9 +493,15 @@ include_once '../includes/header.php';
                 <div class="form-group">
                     <label for="status">Status <span class="required">*</span></label>
                     <select id="status" name="status" required>
-                        <option value="available" <?php echo $property['status'] == 'available' ? 'selected' : ''; ?>>Available</option>
-                        <option value="sold" <?php echo $property['status'] == 'sold' ? 'selected' : ''; ?>>Sold</option>
+
+
+                        <option value="buy" <?php echo $property['status'] == 'buy    ' ? 'selected' : ''; ?>>Available To Buy</option>
+                        <option value="rent" <?php echo $property['status'] == 'rent' ? 'selected' : '';?>>Available To Rent</option>
+
                         <option value="pending" <?php echo $property['status'] == 'pending' ? 'selected' : ''; ?>>Pending</option>
+                            
+                        <option value="sold" <?php echo $property['status'] == 'sold' ? 'selected' : ''; ?>>Sold</option>
+
                         <option value="rented" <?php echo $property['status'] == 'rented' ? 'selected' : ''; ?>>Rented</option>
                     </select>
                 </div>
@@ -492,7 +539,7 @@ include_once '../includes/header.php';
                 </div>
                 
                 <div class="form-group">
-                    <label for="area">Area</label>
+                    <label for="area">Proeprty-size</label>
                     <input type="number" id="area" name="area" min="0" step="0.01" value="<?php echo $property['area']; ?>">
                 </div>
                 
@@ -517,7 +564,7 @@ include_once '../includes/header.php';
             
             <div class="form-row">
                 <div class="form-group">
-                    <label for="city">City <span class="required">*</span></label>
+                    <label for="city">Locality <span class="required">*</span></label>
                     <input type="text" id="city" name="city" value="<?php echo htmlspecialchars($property['city']); ?>" required>
                 </div>
                 
@@ -529,6 +576,31 @@ include_once '../includes/header.php';
                 <div class="form-group">
                     <label for="zip_code">ZIP Code </label>
                     <input type="text" id="zip_code" name="zip_code" value="<?php echo htmlspecialchars($property['zip_code']); ?>" >
+                </div>
+            </div>
+            
+            <!-- Contact Information -->
+            <h3 class="form-section-title">Contact Information</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone_number">Phone Number</label>
+                    <input type="tel" id="phone_number" name="phone_number" 
+                        placeholder="e.g., +91 1234567890" 
+                        pattern="[0-9+\s()-]{10,20}"
+                        value="<?php echo htmlspecialchars($property['phone_number']); ?>">
+                    <small class="form-text text-muted">Enter a valid phone number (10-12 digits)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="instagram_url">Instagram Profile</label>
+                    <div class="input-with-icon">
+                        <i class="fab fa-instagram"></i>
+                        <input type="url" id="instagram_url" name="instagram_url" 
+                            placeholder="https://www.instagram.com/username/"
+                            value="<?php echo htmlspecialchars($property['instagram_url']); ?>">
+                    </div>
+                    <small class="form-text text-muted">Enter a valid Instagram URL</small>
                 </div>
             </div>
             
@@ -622,109 +694,6 @@ include_once '../includes/header.php';
     </div>
 </div>
 
-<style>
-.current-images-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
-}
-
-.current-image-item {
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-}
-
-.current-image-item .image-preview {
-    height: 150px;
-    overflow: hidden;
-}
-
-.current-image-item .image-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.current-image-item .image-controls {
-    padding: 10px;
-    display: flex;
-    justify-content: space-between;
-    background-color: #f5f5f5;
-}
-
-.delete-label {
-    color: var(--error-color);
-}
-
-.primary-label {
-    color: var(--primary-color);
-}
-
-.features-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.feature-item {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-}
-
-.feature-value {
-    margin-top: 5px;
-}
-
-.image-upload-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    margin: 20px 0;
-}
-
-.image-upload-slot {
-    position: relative;
-    border: 2px dashed var(--border-color);
-    border-radius: var(--border-radius);
-    padding: 10px;
-    text-align: center;
-}
-
-.image-upload-slot input[type="file"] {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 10;
-}
-
-.image-preview {
-    width: 100%;
-    height: 150px;
-    overflow: hidden;
-    margin-bottom: 10px;
-}
-
-.image-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.image-upload-instruction {
-    margin: 15px 0;
-}
-</style>
-
 <script>
 // Feature checkboxes toggle
 document.querySelectorAll('.feature-checkbox').forEach(function(checkbox) {
@@ -765,9 +734,137 @@ document.querySelectorAll('.image-input').forEach(function(input) {
 document.getElementById('agent_id').addEventListener('change', function() {
     console.log('Agent ID selected:', this.value);
 });
+
+// Validate Instagram URL and Phone Number
+document.getElementById('instagram_url').addEventListener('blur', function() {
+    const input = this;
+    const value = input.value.trim();
+    
+    if (value && (!value.includes('instagram.com') || !value.startsWith('http'))) {
+        input.setCustomValidity('Please enter a valid Instagram URL starting with http:// or https:// and containing instagram.com');
+    } else {
+        input.setCustomValidity('');
+    }
+});
+
+document.getElementById('phone_number').addEventListener('blur', function() {
+    const input = this;
+    const value = input.value.trim();
+    
+    // Remove non-numeric characters for validation
+    const numericValue = value.replace(/[^0-9]/g, '');
+    
+    if (value && (numericValue.length < 10 || numericValue.length > 12)) {
+        input.setCustomValidity('Phone number must be 10-12 digits');
+    } else {
+        input.setCustomValidity('');
+    }
+});
 </script>
 
 <?php
 // Include footer
 include_once '../includes/footer.php';
 ?>
+<style>
+    .current-images-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .current-image-item {
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .current-image-item .image-preview {
+        height: 150px;
+        overflow: hidden;
+    }
+
+    .current-image-item .image-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .current-image-item .image-controls {
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        background-color: #f5f5f5;
+    }
+
+    .delete-label {
+        color: var(--error-color);
+    }
+
+    .primary-label {
+        color: var(--primary-color);
+    }
+
+    .features-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .feature-item {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+    }
+
+    .feature-value {
+        margin-top: 5px;
+    }
+
+    .image-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
+
+    .image-upload-slot {
+        position: relative;
+        border: 2px dashed var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 10px;
+        text-align: center;
+    }
+
+    .image-upload-slot input[type="file"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 10;
+    }
+
+    .image-preview {
+        width: 100%;
+        height: 150px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .image-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .image-upload-instruction {
+        margin: 15px 0;
+    }
+</style>

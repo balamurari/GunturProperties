@@ -1,0 +1,221 @@
+/* Social Hub Styles */
+:root {
+  /* Real estate themed colors */
+  --primary-color: #3f51b5;
+  --primary-dark: #303f9f;
+  --secondary-color: #4caf50;
+  --accent-color: #ff9800;
+  
+  /* Social media colors */
+  --whatsapp-color: #25D366;
+  --phone-color: #4caf50;
+  --email-color: #ff9800;
+  --facebook-color: #1877F2;
+  --instagram-color: #E4405F;
+  
+  /* Neutral colors */
+  --white: #ffffff;
+  --light-gray: #f5f7fa;
+  --text-dark: #333333;
+  --text-light: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.2);
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  
+  /* Other */
+  --border-radius: 4px;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  --transition: 0.2s ease;
+}
+
+/* Main Social Hub Container */
+.social-hub {
+  position: fixed;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 1000;
+}
+
+/* Social Hub Toggle Button */
+.social-hub-toggle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: var(--white);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 10;
+  position: relative;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  border: none;
+}
+
+.social-hub-toggle:hover {
+  background-color: var(--accent-color);
+  transform: translateY(-5px);
+}
+
+/* Pulse Animation */
+.pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  opacity: 0.4;
+  z-index: -1;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+}
+
+/* Social Hub Menu */
+.social-hub-menu {
+  position: absolute;
+  bottom: 80px;
+  right: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+}
+
+/* Show menu when toggle is clicked */
+.social-hub-toggle:focus + .social-hub-menu,
+.social-hub:hover .social-hub-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Social Hub Items */
+.social-hub-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  transition: transform 0.3s ease;
+}
+
+.social-hub-item:hover {
+  transform: translateX(-5px);
+}
+
+/* Label */
+.social-hub-item .label {
+  background-color: var(--white);
+  color: var(--text-dark);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: var(--shadow);
+  margin-right: var(--space-sm);
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.social-hub-item:hover .label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Icon Wrapper */
+.social-hub-item .icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--white);
+  background-color: var(--primary-color);
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease;
+}
+
+.social-hub-item:hover .icon-wrapper {
+  transform: scale(1.1);
+}
+
+/* Social Hub Item Colors */
+.social-hub-item.whatsapp .icon-wrapper {
+  background-color: var(--whatsapp-color);
+}
+
+.social-hub-item.phone .icon-wrapper {
+  background-color: var(--phone-color);
+}
+
+.social-hub-item.email .icon-wrapper {
+  background-color: var(--email-color);
+}
+
+.social-hub-item.facebook .icon-wrapper {
+  background-color: var(--facebook-color);
+}
+
+.social-hub-item.instagram .icon-wrapper {
+  background-color: var(--instagram-color);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .social-hub {
+    bottom: var(--space-md);
+    right: var(--space-md);
+  }
+  
+  .social-hub-toggle {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+  
+  .social-hub-item .icon-wrapper {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .social-hub-item .label {
+    font-size: 0.8rem;
+    padding: 4px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .social-hub-menu {
+    bottom: 70px;
+  }
+  
+  .social-hub-item {
+    margin-bottom: 12px;
+  }
+}

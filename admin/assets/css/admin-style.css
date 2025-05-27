@@ -734,8 +734,7 @@ tr:hover {
 }
 
 .feature-item i {
-    margin-right: 10px;
-    color: var(--primary-color);
+    color:white;
 }
 
 /* Agent Card */

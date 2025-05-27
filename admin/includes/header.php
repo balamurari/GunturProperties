@@ -12,6 +12,7 @@ requireLogin();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="csrf-token" content="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
     <title><?php echo isset($page_title) ? $page_title . ' - ' : ''; ?>Guntur Properties Admin</title>
     <!-- CSS files -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.x.x/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -21,8 +22,8 @@ requireLogin();
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="/path/to/your/local/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="icon" href="../../assets/images/favicon.png" type="image/x-icon">
-    <link rel="apple-touch-icon" href="../../assets/images/favicon.png">
+  <link rel="icon" href="../../assets/images/logo.jpg" type="image/x-icon">
+    <link rel="apple-touch-icon" href="../../assets/images/logo.jpg">
 </head>
 <body>
     <!-- Mobile menu toggle button -->
