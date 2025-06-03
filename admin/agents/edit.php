@@ -7,11 +7,27 @@ require_once '../includes/config.php';
 require_once '../includes/database.php';
 require_once '../includes/functions.php';
 
+// --- FALLBACK CONSTANTS (in case config.php doesn't load properly) ---
+if (!defined('AGENT_MAX_FILE_SIZE')) {
+    define('AGENT_MAX_FILE_SIZE', 5000000); // 5MB for agent photos
+}
+if (!defined('AGENT_ALLOWED_EXTENSIONS')) {
+    define('AGENT_ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'webp']);
+}
+
 // Set page title
 $page_title = 'Edit Agent Profile';
 
 // Only admins can edit agents
 requireAdmin();
+
+// --- Helper Function for Safe HTML Escaping ---
+function safeHtmlEscape($value) {
+    return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
+}
+
+// --- CSRF Protection ---
+$csrf_token = generateCSRFToken();
 
 // Check if ID is provided
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
@@ -52,27 +68,34 @@ $errors = [];
 $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Get basic info
-    $name = sanitize($_POST['name']);
-    $email = sanitize($_POST['email']);
-    $phone = sanitize($_POST['phone']);
-    $password = $_POST['password'];
-    $confirm_password = $_POST['confirm_password'];
+    
+    // --- CSRF Validation ---
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        setFlashMessage('error', 'Security token mismatch. Please try again.');
+        redirect('edit.php?id=' . $agent_id);
+    }
+    
+    // Get basic info with safe sanitization
+    $name = sanitize($_POST['name'] ?? '') ?: '';
+    $email = sanitize($_POST['email'] ?? '') ?: '';
+    $phone = sanitize($_POST['phone'] ?? '') ?: '';
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
     $status = isset($_POST['status']) ? 1 : 0;
     
     // Get agent specific info
-    $position = sanitize($_POST['position']);
-    $description = sanitize($_POST['description']);
+    $position = sanitize($_POST['position'] ?? '') ?: '';
+    $description = sanitize($_POST['description'] ?? '') ?: '';
     $experience = isset($_POST['experience']) ? (int)$_POST['experience'] : 0;
-    $specialization = sanitize($_POST['specialization'] ?? '');
-    $facebook_url = sanitize($_POST['facebook_url']);
-    $twitter_url = sanitize($_POST['twitter_url']);
-    $instagram_url = sanitize($_POST['instagram_url']);
-    $linkedin_url = sanitize($_POST['linkedin_url']);
-    $youtube_url = sanitize($_POST['youtube_url']);
-    $website_url = sanitize($_POST['website_url']);
-    $office_address = sanitize($_POST['office_address']);
-    $office_hours = sanitize($_POST['office_hours']);
+    $specialization = sanitize($_POST['specialization'] ?? '') ?: '';
+    $facebook_url = filter_var($_POST['facebook_url'] ?? '', FILTER_SANITIZE_URL) ?: '';
+    $twitter_url = filter_var($_POST['twitter_url'] ?? '', FILTER_SANITIZE_URL) ?: '';
+    $instagram_url = filter_var($_POST['instagram_url'] ?? '', FILTER_SANITIZE_URL) ?: '';
+    $linkedin_url = filter_var($_POST['linkedin_url'] ?? '', FILTER_SANITIZE_URL) ?: '';
+    $youtube_url = filter_var($_POST['youtube_url'] ?? '', FILTER_SANITIZE_URL) ?: '';
+    $website_url = filter_var($_POST['website_url'] ?? '', FILTER_SANITIZE_URL) ?: '';
+    $office_address = sanitize($_POST['office_address'] ?? '') ?: '';
+    $office_hours = sanitize($_POST['office_hours'] ?? '') ?: '';
     $featured = isset($_POST['featured']) ? 1 : 0;
     
     // Get selected specializations
@@ -97,11 +120,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
+    // Validate URLs
+    $url_fields = ['facebook_url', 'twitter_url', 'instagram_url', 'linkedin_url', 'youtube_url', 'website_url'];
+    foreach ($url_fields as $field) {
+        $url_value = ${$field}; // Get the variable value dynamically
+        if (!empty($url_value) && !filter_var($url_value, FILTER_VALIDATE_URL)) {
+            $errors[] = 'Invalid ' . str_replace('_', ' ', $field) . ' format.';
+        }
+    }
+    
     // Handle password change if requested
     $update_password = false;
     if (!empty($password) || !empty($confirm_password)) {
-        if (strlen($password) < 6) {
-            $errors[] = 'Password must be at least 6 characters';
+        if (strlen($password) < 8) {
+            $errors[] = 'Password must be at least 8 characters';
+        } elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', $password)) {
+            $errors[] = 'Password must contain at least one uppercase letter, one lowercase letter, and one number.';
         }
         
         if ($password !== $confirm_password) {
@@ -111,18 +145,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_password = true;
     }
     
-    // Handle profile image upload
-    $upload_result = false;
+    // Handle profile image upload using optimized function
+    $image_upload_result = null;
     $update_image = false;
     
-    if (!empty($_FILES['profile_pic']['name'])) {
-        $file = $_FILES['profile_pic'];
-        $upload_result = uploadFile($file, AGENT_IMG_PATH, ALLOWED_EXTENSIONS, MAX_FILE_SIZE);
+    if (isset($_FILES['profile_pic']) && $_FILES['profile_pic']['error'] === UPLOAD_ERR_OK) {
+        $profile_image = $_FILES['profile_pic'];
         
-        if (!$upload_result) {
-            $errors[] = 'Failed to upload profile image. Please ensure it is a valid image file and size is less than 2MB.';
+        // Pre-validate image before processing
+        $file_extension = strtolower(pathinfo($profile_image['name'], PATHINFO_EXTENSION));
+        if (!in_array($file_extension, AGENT_ALLOWED_EXTENSIONS)) {
+            $errors[] = 'Invalid file type. Allowed: ' . implode(', ', AGENT_ALLOWED_EXTENSIONS);
+        } elseif ($profile_image['size'] > AGENT_MAX_FILE_SIZE) {
+            $errors[] = 'File too large. Maximum size: ' . (AGENT_MAX_FILE_SIZE / 1024 / 1024) . 'MB';
         } else {
-            $update_image = true;
+            // Use the optimized uploadAgentImage function
+            $image_upload_result = uploadAgentImage($profile_image, $agent['user_id']);
+            if ($image_upload_result['success']) {
+                $update_image = true;
+            } else {
+                $errors[] = $image_upload_result['message'];
+            }
         }
     }
     
@@ -139,10 +182,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $sql .= ", password = :password";
             }
             
-            if ($update_image) {
-                $sql .= ", profile_pic = :profile_pic";
-            }
-            
             $sql .= " WHERE id = :id";
             
             $db->query($sql);
@@ -154,18 +193,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($update_password) {
                 $db->bind(':password', password_hash($password, PASSWORD_DEFAULT));
-            }
-            
-            if ($update_image) {
-                $db->bind(':profile_pic', $upload_result['path']);
-                
-                // Delete old profile image if exists
-                if (!empty($agent['profile_pic'])) {
-                    $old_image_path = $_SERVER['DOCUMENT_ROOT'] . '/gunturProperties/' . $agent['profile_pic'];
-                    if (file_exists($old_image_path)) {
-                        unlink($old_image_path);
-                    }
-                }
             }
             
             $db->execute();
@@ -213,10 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Then add new mappings
             if (!empty($new_specializations)) {
                 foreach ($new_specializations as $spec_id) {
-                    $db->query("INSERT INTO agent_specialization_mapping (agent_id, specialization_id) VALUES (:agent_id, :spec_id)");
-                    $db->bind(':agent_id', $agent_id);
-                    $db->bind(':spec_id', $spec_id);
-                    $db->execute();
+                    if (is_numeric($spec_id)) {
+                        $db->query("INSERT INTO agent_specialization_mapping (agent_id, specialization_id) VALUES (:agent_id, :spec_id)");
+                        $db->bind(':agent_id', $agent_id);
+                        $db->bind(':spec_id', intval($spec_id));
+                        $db->execute();
+                    }
                 }
             }
             
@@ -224,7 +253,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->endTransaction();
             
             $success = true;
-            setFlashMessage('success', 'Agent profile updated successfully!');
+            $success_message = 'Agent profile updated successfully!';
+            if ($update_image && $image_upload_result) {
+                $success_message .= ' Profile picture updated.';
+            }
+            
+            setFlashMessage('success', $success_message);
             redirect('index.php');
             
         } catch (Exception $e) {
@@ -239,391 +273,345 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 include_once '../includes/header.php';
 ?>
 
-<div class="card">
-    <div class="card-header">
-        <div class="card-header-actions">
-            <h2>Edit Agent Profile</h2>
-            <div>
-                <a href="index.php" class="btn btn-outline">
-                    <i class="fas fa-arrow-left"></i> Back to Agents
-                </a>
-                <a href="agent-details.php?id=<?php echo $agent_id; ?>" class="btn btn-secondary">
-                    <i class="fas fa-eye"></i> View Profile
-                </a>
+<div class="admin-container">
+    <div class="admin-content">
+        <div class="container-fluid">
+            <!-- Header -->
+            <div class="admin-content-header d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><?php echo safeHtmlEscape($page_title); ?></h2>
+                    <p class="text-muted mb-0">Edit agent profile information and settings</p>
+                </div>
+                <div>
+                    <a href="index.php" class="btn btn-secondary me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Agents
+                    </a>
+                    <a href="agent-details.php?id=<?php echo $agent_id; ?>" class="btn btn-outline-primary">
+                        <i class="fas fa-eye me-2"></i>View Profile
+                    </a>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="card-body">
-        <?php if (!empty($errors)): ?>
-            <div class="alert alert-error">
-                <ul>
-                    <?php foreach ($errors as $error): ?>
-                        <li><?php echo $error; ?></li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-        <?php endif; ?>
-        
-        <form method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $agent_id); ?>" enctype="multipart/form-data" id="agentEditForm">            <div class="form-tabs">
-                <ul class="nav nav-tabs" id="agentFormTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic-tab-pane" type="button" role="tab" aria-controls="basic-tab-pane" aria-selected="true">Basic Information</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="false">Professional Details</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab" aria-controls="contact-tab-pane" aria-selected="false">Contact & Social</button>
-                    </li>
-                </ul>
-                
-                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="agentFormTabContent">
-                    <!-- Basic Information Tab -->
-                    <div class="tab-pane fade show active" id="basic-tab-pane" role="tabpanel" aria-labelledby="basic-tab" tabindex="0">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="name">Full Name <span class="required">*</span></label>
-                                    <input type="text" id="name" name="name" value="<?php echo htmlspecialchars($agent['name']); ?>" required>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="email">Email Address <span class="required">*</span></label>
-                                    <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($agent['email']); ?>" required>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="phone">Phone Number</label>
-                                    <input type="text" id="phone" name="phone" value="<?php echo htmlspecialchars($agent['phone']); ?>">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="position">Position/Title</label>
-                                    <input type="text" id="position" name="position" value="<?php echo htmlspecialchars($agent['position']); ?>">
-                                    <small class="form-text">e.g., "Senior Real Estate Agent", "Property Consultant"</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="profile_pic">Profile Picture</label>
-                                    <input type="file" id="profile_pic" name="profile_pic" class="image-input" data-preview="profile-preview">
-                                    <div class="image-preview-container">
-                                        <img id="profile-preview" src="<?php echo !empty($agent['profile_pic']) ? '../../' . $agent['profile_pic'] : '../../assets/images/default-profile.jpg'; ?>" alt="Profile Preview" class="rounded-circle">
+
+            <?php displayFlashMessage(); ?>
+
+            <?php if (!empty($errors)): ?>
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        <?php foreach ($errors as $error): ?>
+                            <li><?php echo safeHtmlEscape($error); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
+            <!-- Main Form -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Agent Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="<?php echo safeHtmlEscape($_SERVER['PHP_SELF'] . '?id=' . $agent_id); ?>" enctype="multipart/form-data" id="agentEditForm">
+                        <!-- CSRF Token -->
+                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+
+                        <!-- Form Tabs -->
+                        <ul class="nav nav-tabs mb-4" id="agentFormTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic-tab-pane" type="button" role="tab">
+                                    <i class="fas fa-user me-2"></i>Basic Information
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab">
+                                    <i class="fas fa-id-card me-2"></i>Professional Details
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact-tab-pane" type="button" role="tab">
+                                    <i class="fas fa-address-book me-2"></i>Contact & Social
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="agentFormTabContent">
+                            <!-- Basic Information Tab -->
+                            <div class="tab-pane fade show active" id="basic-tab-pane" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="name" name="name" 
+                                               value="<?php echo safeHtmlEscape($agent['name']); ?>" required>
                                     </div>
-                                    <small class="form-text">Allowed formats: JPG, JPEG, PNG. Max size: 2MB.</small>
+                                    <div class="col-md-6">
+                                        <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control" id="email" name="email" 
+                                               value="<?php echo safeHtmlEscape($agent['email']); ?>" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="text" class="form-control" id="phone" name="phone" 
+                                               value="<?php echo safeHtmlEscape($agent['phone']); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="position" class="form-label">Position/Title</label>
+                                        <input type="text" class="form-control" id="position" name="position" 
+                                               value="<?php echo safeHtmlEscape($agent['position']); ?>"
+                                               placeholder="e.g., Senior Real Estate Agent">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="profile_pic" class="form-label">
+                                            Profile Picture 
+                                            <small class="text-muted">(Max: <?php echo round(AGENT_MAX_FILE_SIZE / 1024 / 1024, 1); ?>MB)</small>
+                                        </label>
+                                        <input type="file" class="form-control" id="profile_pic" name="profile_pic" 
+                                               accept="image/jpeg,image/jpg,image/png,image/webp">
+                                        
+                                        <!-- Current Image Preview -->
+                                        <div class="mt-3">
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-3">
+                                                    <img id="profile-preview" 
+                                                         src="<?php echo getAgentImageUrl($agent['profile_pic']); ?>" 
+                                                         alt="Profile Preview" 
+                                                         class="rounded-circle border" 
+                                                         style="width: 100px; height: 100px; object-fit: cover;">
+                                                </div>
+                                                <div>
+                                                    <small class="text-muted">Current profile picture</small>
+                                                    <br>
+                                                    <small class="text-muted">Choose a new file to replace it</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="password" class="form-label">New Password</label>
+                                        <input type="password" class="form-control" id="password" name="password">
+                                        <small class="form-text text-muted">Leave blank to keep current password. Must be 8+ characters with uppercase, lowercase, and number.</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="status" name="status" 
+                                                   <?php echo $agent['status'] ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="status">
+                                                <i class="fas fa-check-circle me-1 text-success"></i>Account Active
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" id="featured" name="featured" 
+                                                   <?php echo $agent['featured'] ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="featured">
+                                                <i class="fas fa-star me-1 text-warning"></i>Featured Agent
+                                            </label>
+                                            <small class="form-text text-muted d-block">Featured agents appear prominently on the website</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="password">Password</label>
-                                    <input type="password" id="password" name="password">
-                                    <small class="form-text">Leave blank to keep current password. Password must be at least 6 characters long.</small>
+                            <!-- Professional Details Tab -->
+                            <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="description" class="form-label">Bio/Description</label>
+                                        <textarea class="form-control" id="description" name="description" rows="5" 
+                                                  placeholder="Tell potential clients about yourself, your background, and expertise"><?php echo safeHtmlEscape($agent['description']); ?></textarea>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="confirm_password">Confirm Password</label>
-                                    <input type="password" id="confirm_password" name="confirm_password">
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="experience" class="form-label">Years of Experience</label>
+                                        <input type="number" class="form-control" id="experience" name="experience" 
+                                               min="0" value="<?php echo intval($agent['experience']); ?>">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="specialization" class="form-label">Main Specialization</label>
+                                        <input type="text" class="form-control" id="specialization" name="specialization" 
+                                               value="<?php echo safeHtmlEscape($agent['specialization']); ?>"
+                                               placeholder="e.g., Residential Properties, Commercial Real Estate">
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group checkbox-group">
-                                    <input type="checkbox" id="status" name="status" <?php echo $agent['status'] ? 'checked' : ''; ?>>
-                                    <label for="status">Account Active</label>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group checkbox-group">
-                                    <input type="checkbox" id="featured" name="featured" <?php echo $agent['featured'] ? 'checked' : ''; ?>>
-                                    <label for="featured">Featured Agent</label>
-                                    <small class="form-text d-block">Featured agents appear on the homepage and top of listings</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Professional Details Tab -->
-                    <div class="tab-pane fade" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="description">Bio/Description</label>
-                                    <textarea id="description" name="description" rows="5"><?php echo htmlspecialchars($agent['description']); ?></textarea>
-                                    <small class="form-text">Tell potential clients about yourself, your background, and expertise</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="experience">Years of Experience</label>
-                                    <input type="number" id="experience" name="experience" min="0" value="<?php echo (int)$agent['experience']; ?>">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="specialization">Main Specialization</label>
-                                    <input type="text" id="specialization" name="specialization" value="<?php echo htmlspecialchars($agent['specialization']); ?>">
-                                    <small class="form-text">e.g., "Residential Properties", "Commercial Real Estate"</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label>Areas of Specialization</label>
-                                    <div class="specialization-grid">
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Areas of Specialization</label>
+                                    <div class="row">
                                         <?php foreach ($specializations as $spec): ?>
-                                            <div class="specialization-item">
-                                                <input type="checkbox" id="spec_<?php echo $spec['id']; ?>" name="specializations[]" value="<?php echo $spec['id']; ?>" <?php echo in_array($spec['id'], $selected_specializations) ? 'checked' : ''; ?>>
-                                                <label for="spec_<?php echo $spec['id']; ?>"><?php echo htmlspecialchars($spec['name']); ?></label>
+                                            <div class="col-md-6 col-lg-4 mb-2">
+                                                <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" 
+                                                           id="spec_<?php echo $spec['id']; ?>" 
+                                                           name="specializations[]" 
+                                                           value="<?php echo $spec['id']; ?>" 
+                                                           <?php echo in_array($spec['id'], $selected_specializations) ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label" for="spec_<?php echo $spec['id']; ?>">
+                                                        <?php echo safeHtmlEscape($spec['name']); ?>
+                                                    </label>
+                                                </div>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
                                 </div>
                             </div>
+                            
+                            <!-- Contact & Social Tab -->
+                            <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-md-12">
+                                        <label for="office_address" class="form-label">Office Address</label>
+                                        <textarea class="form-control" id="office_address" name="office_address" rows="3"><?php echo safeHtmlEscape($agent['office_address']); ?></textarea>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label for="office_hours" class="form-label">Office Hours</label>
+                                        <input type="text" class="form-control" id="office_hours" name="office_hours" 
+                                               value="<?php echo safeHtmlEscape($agent['office_hours']); ?>"
+                                               placeholder="e.g., Mon-Fri 9AM-5PM, Sat 10AM-2PM">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="website_url" class="form-label">
+                                            <i class="fas fa-globe me-1"></i>Website
+                                        </label>
+                                        <input type="url" class="form-control" id="website_url" name="website_url" 
+                                               value="<?php echo safeHtmlEscape($agent['website_url']); ?>"
+                                               placeholder="https://www.example.com">
+                                    </div>
+                                </div>
+                                
+                                <h6 class="text-primary mb-3"><i class="fas fa-share-alt me-2"></i>Social Media Profiles</h6>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="facebook_url" class="form-label">
+                                            <i class="fab fa-facebook me-2 text-primary"></i>Facebook
+                                        </label>
+                                        <input type="url" class="form-control" id="facebook_url" name="facebook_url" 
+                                               value="<?php echo safeHtmlEscape($agent['facebook_url']); ?>"
+                                               placeholder="https://facebook.com/username">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="twitter_url" class="form-label">
+                                            <i class="fab fa-twitter me-2 text-info"></i>Twitter
+                                        </label>
+                                        <input type="url" class="form-control" id="twitter_url" name="twitter_url" 
+                                               value="<?php echo safeHtmlEscape($agent['twitter_url']); ?>"
+                                               placeholder="https://twitter.com/username">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="instagram_url" class="form-label">
+                                            <i class="fab fa-instagram me-2 text-danger"></i>Instagram
+                                        </label>
+                                        <input type="url" class="form-control" id="instagram_url" name="instagram_url" 
+                                               value="<?php echo safeHtmlEscape($agent['instagram_url']); ?>"
+                                               placeholder="https://instagram.com/username">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="linkedin_url" class="form-label">
+                                            <i class="fab fa-linkedin me-2 text-primary"></i>LinkedIn
+                                        </label>
+                                        <input type="url" class="form-control" id="linkedin_url" name="linkedin_url" 
+                                               value="<?php echo safeHtmlEscape($agent['linkedin_url']); ?>"
+                                               placeholder="https://linkedin.com/in/username">
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="youtube_url" class="form-label">
+                                            <i class="fab fa-youtube me-2 text-danger"></i>YouTube
+                                        </label>
+                                        <input type="url" class="form-control" id="youtube_url" name="youtube_url" 
+                                               value="<?php echo safeHtmlEscape($agent['youtube_url']); ?>"
+                                               placeholder="https://youtube.com/channel/username">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Contact & Social Tab -->
-                    <div class="tab-pane fade" id="contact-tab-pane" role="tabpanel" aria-labelledby="contact-tab" tabindex="0">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label for="office_address">Office Address</label>
-                                    <textarea id="office_address" name="office_address" rows="3"><?php echo htmlspecialchars($agent['office_address']); ?></textarea>
+                        
+                        <!-- Agent Statistics -->
+                        <div class="alert alert-info mt-4">
+                            <?php
+                            // Get property count
+                            $db->query("SELECT COUNT(*) as count FROM properties WHERE agent_id = :agent_id");
+                            $db->bind(':agent_id', $agent_id);
+                            $property_count = $db->single()['count'];
+                            ?>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <i class="fas fa-home me-2"></i>
+                                    This agent has <strong><?php echo $property_count; ?></strong> properties assigned.
                                 </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="office_hours">Office Hours</label>
-                                    <input type="text" id="office_hours" name="office_hours" value="<?php echo htmlspecialchars($agent['office_hours']); ?>">
-                                    <small class="form-text">e.g., "Mon-Fri 9AM-5PM, Sat 10AM-2PM"</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="website_url">Website</label>
-                                    <input type="url" id="website_url" name="website_url" value="<?php echo htmlspecialchars($agent['website_url']); ?>">
-                                </div>
-                            </div>
-                            
-                            <h5 class="mt-4">Social Media Profiles</h5>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="facebook_url"><i class="fab fa-facebook me-2"></i>Facebook</label>
-                                    <input type="url" id="facebook_url" name="facebook_url" value="<?php echo htmlspecialchars($agent['facebook_url']); ?>">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="twitter_url"><i class="fab fa-twitter me-2"></i>Twitter</label>
-                                    <input type="url" id="twitter_url" name="twitter_url" value="<?php echo htmlspecialchars($agent['twitter_url']); ?>">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="instagram_url"><i class="fab fa-instagram me-2"></i>Instagram</label>
-                                    <input type="url" id="instagram_url" name="instagram_url" value="<?php echo htmlspecialchars($agent['instagram_url']); ?>">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="linkedin_url"><i class="fab fa-linkedin me-2"></i>LinkedIn</label>
-                                    <input type="url" id="linkedin_url" name="linkedin_url" value="<?php echo htmlspecialchars($agent['linkedin_url']); ?>">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="youtube_url"><i class="fab fa-youtube me-2"></i>YouTube</label>
-                                    <input type="url" id="youtube_url" name="youtube_url" value="<?php echo htmlspecialchars($agent['youtube_url']); ?>">
-                                </div>
+                                <?php if ($property_count > 0): ?>
+                                    <a href="../properties/index.php?agent=<?php echo $agent_id; ?>" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-list me-1"></i>View Properties
+                                    </a>
+                                <?php endif; ?>
                             </div>
                         </div>
-                    </div>
+                        
+                        <!-- Form Actions -->
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted">
+                                <small><span class="text-danger">*</span> Required fields</small>
+                            </div>
+                            <div>
+                                <button type="reset" class="btn btn-secondary me-2">
+                                    <i class="fas fa-undo me-2"></i>Reset Changes
+                                </button>
+                                <button type="submit" class="btn btn-success btn-lg" id="updateAgentBtn">
+                                    <i class="fas fa-save me-2"></i>Update Agent Profile
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
-            
-            <!-- Display agent's property count -->
-            <div class="agent-stats mt-4 p-3 bg-light rounded">
-                <?php
-                // Get property count
-                $db->query("SELECT COUNT(*) as count FROM properties WHERE agent_id = :agent_id");
-                $db->bind(':agent_id', $agent_id);
-                $property_count = $db->single()['count'];
-                ?>
-                <p><i class="fas fa-home me-2"></i>This agent has <strong><?php echo $property_count; ?></strong> properties assigned.</p>
-                <?php if ($property_count > 0): ?>
-                    <a href="../properties/index.php?agent=<?php echo $agent_id; ?>" class="btn btn-outline">
-                        <i class="fas fa-list"></i> View Agent's Properties
-                    </a>
-                <?php endif; ?>
-            </div>
-            
-            <div class="form-actions mt-4">
-                <button type="submit" class="btn btn-primary" id="updateAgentBtn">
-                    <i class="fas fa-save me-2"></i>Update Agent Profile
-                </button>
-                <button type="reset" class="btn btn-secondary">
-                    <i class="fas fa-undo me-2"></i>Reset Changes
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<style>
-.image-preview-container {
-    width: 150px;
-    height: 150px;
-    overflow: hidden;
-    margin: 10px 0;
-    border-radius: 50%;
-    border: 3px solid var(--border-color);
-}
-
-#profile-preview {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.specialization-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.specialization-item {
-    display: flex;
-    align-items: center;
-    padding: 5px 10px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-}
-
-.specialization-item input[type="checkbox"] {
-    margin-right: 8px;
-}
-
-/* Bootstrap-like tabs styling if not using Bootstrap */
-.nav-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    border-bottom: 1px solid #dee2e6;
-    list-style: none;
-    padding-left: 0;
-    margin-bottom: 0;
-}
-
-.nav-item {
-    margin-bottom: -1px;
-}
-
-.nav-link {
-    display: block;
-    padding: 0.5rem 1rem;
-    color: #495057;
-    text-decoration: none;
-    background-color: transparent;
-    border: 1px solid transparent;
-    border-top-left-radius: 0.25rem;
-    border-top-right-radius: 0.25rem;
-    cursor: pointer;
-}
-
-.nav-link.active {
-    color: #495057;
-    background-color: #fff;
-    border-color: #dee2e6 #dee2e6 #fff;
-}
-
-.tab-content {
-    background-color: #fff;
-}
-
-.tab-pane {
-    display: none;
-}
-
-.tab-pane.active,
-.tab-pane.show {
-    display: block;
-}
-
-.fade {
-    transition: opacity 0.15s linear;
-}
-
-.fade:not(.show) {
-    opacity: 0;
-}
-</style>
-
 <script>
-    // Add this to your script section
 document.addEventListener('DOMContentLoaded', function() {
-    // Form submission handler
-    const form = document.querySelector('form');
-    const updateBtn = document.getElementById('updateAgentBtn');
+    // Image preview functionality
+    const profilePicInput = document.getElementById('profile_pic');
+    const profilePreview = document.getElementById('profile-preview');
     
-    if (updateBtn) {
-        updateBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            // Validate form fields here if needed
-            
-            // Submit the form
-            form.submit();
-        });
-    }
+    profilePicInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                profilePreview.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
     
-    // Backup direct form submission
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            // You can add additional validation here if needed
-            // If you don't need validation, you can remove this listener
-            console.log('Form submitted');
-        });
-    }
-});
-</script>
-<script>
-
-// Image preview
-document.getElementById('profile_pic').addEventListener('change', function() {
-    const preview = document.getElementById('profile-preview');
-    
-    if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            preview.src = e.target.result;
-        };
-        
-        reader.readAsDataURL(this.files[0]);
-    }
-});
-
-// Tab functionality if not using Bootstrap
-document.addEventListener('DOMContentLoaded', function() {
+    // Tab functionality
     const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
     
     tabButtons.forEach(function(button) {
@@ -647,6 +635,33 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
         });
     });
+    
+    // Form validation
+    const form = document.getElementById('agentEditForm');
+    const updateBtn = document.getElementById('updateAgentBtn');
+    
+    form.addEventListener('submit', function(e) {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+    });
+    
+    // Password validation
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    
+    function validatePasswords() {
+        const password = passwordField.value;
+        const confirmPassword = confirmPasswordField.value;
+        
+        if (password && password !== confirmPassword) {
+            confirmPasswordField.setCustomValidity('Passwords do not match');
+        } else {
+            confirmPasswordField.setCustomValidity('');
+        }
+    }
+    
+    passwordField.addEventListener('input', validatePasswords);
+    confirmPasswordField.addEventListener('input', validatePasswords);
 });
 </script>
 

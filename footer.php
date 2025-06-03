@@ -9,7 +9,7 @@
         <div class="footer-logo">
           <img src="assets/images/logo.jpg" alt="Guntur Properties">
         </div>
-        <p class="footer-desc">Your trusted partner in finding your dream home or selling your property in Guntur region since 2010.</p>
+        <p class="footer-desc">Your trusted partner in finding your dream home or selling your property in Guntur region since 2020.</p>
         <div class="footer-social">
           <a href="https://www.facebook.com/share/1Be885ZdP7/" class="social-icon"><i class="fab fa-facebook-f"></i></a>
           <a href="https://www.instagram.com/gunturpropertiess?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" class="social-icon"><i class="fab fa-instagram"></i></a>

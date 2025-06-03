@@ -445,112 +445,142 @@ include "header.php";
         
         <?php else: ?>
         <!-- Properties Grid -->
-        <div class="properties-grid">
-            <?php foreach ($properties as $property): ?>
-            <div class="property-card">
-                <?php if (!empty($property['featured']) && $property['featured'] == 1): ?>
-                <div class="property-badge featured-badge">Featured</div>
-                <?php endif; ?>
-                
-                <?php 
-                $status_info = getStatusInfo($property['status']);
-                ?>
-                <div class="property-status status-<?php echo $status_info['class']; ?>">
-                    <?php echo $status_info['text']; ?>
-                </div>
-                
-                <div class="property-images">
-                    <img src="<?php echo getPropertyImageUrl($property['primary_image']); ?>" 
-                         alt="<?php echo htmlspecialchars($property['title']); ?>"
-                         onerror="this.onerror=null; this.src='assets/images/no-image.jpg';">
-                    
-                    <?php if (!empty($property['image_count']) && $property['image_count'] > 1): ?>
-                    <div class="image-count">
-                        <i class="fas fa-camera"></i> <?php echo $property['image_count']; ?>
-                    </div>
+<div class="properties-grid">
+    <?php foreach ($properties as $property): ?>
+    <div class="property-card">
+        <?php if (!empty($property['featured']) && $property['featured'] == 1): ?>
+        <div class="property-badge featured-badge">Featured</div>
+        <?php endif; ?>
+        
+        <?php 
+        $status_info = getStatusInfo($property['status']);
+        $is_rent = ($property['status'] === 'rent');
+        ?>
+        <div class="property-status status-<?php echo $status_info['class']; ?>">
+            <?php echo $status_info['text']; ?>
+        </div>
+        
+        <div class="property-images">
+            <img src="<?php echo getPropertyImageUrl($property['primary_image']); ?>" 
+                 alt="<?php echo htmlspecialchars($property['title']); ?>"
+                 onerror="this.onerror=null; this.src='assets/images/no-image.jpg';">
+            
+            <?php if (!empty($property['image_count']) && $property['image_count'] > 1): ?>
+            <div class="image-count">
+                <i class="fas fa-camera"></i> <?php echo $property['image_count']; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+        
+        <div class="property-info">
+            <div class="property-header">
+                <h3 class="property-title">
+                    <a href="property-details.php?id=<?php echo $property['id']; ?>">
+                        <?php echo htmlspecialchars($property['title']); ?>
+                    </a>
+                </h3>
+                <div class="property-price">
+                    <?php if ($is_rent): ?>
+                        <?php echo formatIndianPrice($property['price']); ?>
+                    <?php else: ?>
+                        <?php echo formatIndianPrice($property['price']); ?>
                     <?php endif; ?>
-                </div>
-                
-                <div class="property-info">
-                    <div class="property-header">
-                        <h3 class="property-title">
-                            <a href="property-details.php?id=<?php echo $property['id']; ?>">
-                                <?php echo htmlspecialchars($property['title']); ?>
-                            </a>
-                        </h3>
-                        <div class="property-price">
-                            <?php echo formatIndianPrice($property['price']); ?>
-                            <?php if ($property['status'] == 'rent'): ?>
-                            <span class="rent-period">/ month</span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    
-                    <div class="property-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <!-- <?php echo htmlspecialchars($property['address']); ?>,  -->
-                        <?php echo htmlspecialchars($property['city']); ?>
-                        <!-- <?php echo htmlspecialchars($property['state']); ?> -->
-                    </div>
-                    
-                    <div class="property-details-row">
-             
-                        
-                        <?php if (!empty($property['bedrooms'])): ?>
-                        <div class="property-detail">
-                            <i class="fas fa-bed"></i>
-                            <?php echo $property['bedrooms']; ?> Bed<?php echo ($property['bedrooms'] > 1) ? 's' : ''; ?>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($property['bathrooms'])): ?>
-                        <div class="property-detail">
-                            <i class="fas fa-bath"></i>
-                            <?php echo $property['bathrooms']; ?> Bath<?php echo ($property['bathrooms'] > 1) ? 's' : ''; ?>
-                        </div>
-                        <?php endif; ?>
-                        
-                        <?php if (!empty($property['area'])): ?>
-                        <div class="property-detail">
-                            <i class="fas fa-ruler-combined"></i>
-                            <?php echo $property['area']; ?> <?php echo $property['area_unit']; ?>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if (!empty($property['facing'])): ?>
-                    <div class="property-facing">
-                        <i class="fas fa-compass"></i>
-                        <?php echo htmlspecialchars($property['facing']); ?> Facing
-                    </div>
+                    <?php if ($property['status'] == 'rent'): ?>
+                    <span class="rent-period">/ month</span>
                     <?php endif; ?>
-                    
-
-                    
-                    <div class="property-actions">
-                        <a href="property-details.php?id=<?php echo $property['id']; ?>" class="btn btn-primary view-details-btn">
-                            <i class="fas fa-eye"></i> View Details
-                        </a>
-                    
-                                <?php if ($property['status'] == 'rent'): ?>
-                        <button class="btn btn-outline share-btn" data-property-id="<?php echo $property['id']; ?>" title="Share">
-                            <i class="fas fa-share-alt"></i>
-                        </button>
-                        <?php else: ?>
-                        <?php if (!empty($property['instagram_url'])): ?>
-                        <a href="<?php echo htmlspecialchars($property['instagram_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline instagram-btn" title="Instagram">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                        <?php endif; ?>
-                        <?php endif; ?>
-                       
-                        
-             
-                    </div>
                 </div>
             </div>
-            <?php endforeach; ?>
+            
+            <div class="property-location">
+                <i class="fas fa-map-marker-alt"></i>
+                <!-- <?php echo htmlspecialchars($property['address']); ?>,  -->
+                <?php echo htmlspecialchars($property['city']); ?>
+                <!-- <?php echo htmlspecialchars($property['state']); ?> -->
+            </div>
+            
+            <div class="property-details-row">
+                <?php if (!empty($property['bedrooms'])): ?>
+                <div class="property-detail">
+                    <i class="fas fa-bed"></i>
+                    <?php echo $property['bedrooms']; ?> Bed<?php echo ($property['bedrooms'] > 1) ? 's' : ''; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($property['bathrooms'])): ?>
+                <div class="property-detail">
+                    <i class="fas fa-bath"></i>
+                    <?php echo $property['bathrooms']; ?> Bath<?php echo ($property['bathrooms'] > 1) ? 's' : ''; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($property['area'])): ?>
+                <div class="property-detail">
+                    <i class="fas fa-ruler-combined"></i>
+                    <?php echo $property['area']; ?> <?php echo $property['area_unit']; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            
+            <?php if (!empty($property['facing'])): ?>
+            <div class="property-facing">
+                <i class="fas fa-compass"></i>
+                <?php echo htmlspecialchars($property['facing']); ?> Facing
+            </div>
+            <?php endif; ?>
+            
+            <div class="property-actions">
+                <?php if ($is_rent): ?>
+                    <!-- For rental properties -->
+                    <a href="#" 
+                           style="flex: 1; background: #28a745; color: white; padding: 0.5rem 1rem; text-align: center; border-radius: 5px; text-decoration: none; font-size: 0.9rem;">
+                            <i class="fas fa-lock"></i> Pay & Share to Agent to View Details
+                        </a>
+                    
+                    <button class="btn btn-outline share-btn" onclick="shareProperty(<?php echo $property['id']; ?>)" title="Share">
+                        <i class="fas fa-share-alt"></i>
+                    </button>
+                <?php else: ?>
+                    <!-- For sale properties -->
+                    <a href="property-details.php?id=<?php echo $property['id']; ?>" class="btn btn-primary view-details-btn">
+                        <i class="fas fa-eye"></i> View Details
+                    </a>
+                    
+                    <?php if (!empty($property['instagram_url'])): ?>
+                    <a href="<?php echo htmlspecialchars($property['instagram_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline instagram-btn" title="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
+    </div>
+    <?php endforeach; ?>
+</div>
+
+<script>
+// Make sure this script is only included once in your page
+if (typeof shareProperty === 'undefined') {
+    function shareProperty(propertyId) {
+        const propertyUrl = window.location.origin + '/property-details.php?id=' + propertyId;
+        
+        if (navigator.share) {
+            // Use native Web Share API if available
+            navigator.share({
+                title: 'Check out this property',
+                url: propertyUrl
+            }).catch(console.error);
+        } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(propertyUrl).then(() => {
+                alert('Property link copied to clipboard!');
+            }).catch(() => {
+                // Final fallback: show the URL
+                prompt('Copy this link:', propertyUrl);
+            });
+        }
+    }
+}
+</script>
         
         <!-- Pagination -->
         <?php if ($total_pages > 1): ?>
@@ -668,7 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function shareProperty(propertyId) {
-    const url = window.location.origin + 'property-details.php?id=' + propertyId;
+    const url = window.location.origin + '/property-details.php?id=' + propertyId;
     
     if (navigator.share) {
         navigator.share({
