@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Visiting Card</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.0/aframe.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ar.js/2.2.2/aframe-ar.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            overflow: hidden;
+        }
+        
+        .ui-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        .status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            pointer-events: auto;
+        }
+        
+        .fallback-card {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 350px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            display: none;
+        }
+        
+        .profile-pic {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        
+        .contact-link {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .contact-link:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .debug {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            pointer-events: auto;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="ui-overlay">
+        <div class="status" id="status">
+            <div>📱 AR Business Card</div>
+            <div style="font-size: 14px; margin-top: 10px;">
+                Allow camera access to continue
+            </div>
+        </div>
+        
+        <div class="debug" id="debug">
+            Debug info will appear here
+        </div>
+    </div>
+
+    <div class="fallback-card" id="fallback">
+        <div class="profile-pic">👨‍💼</div>
+        <h2 style="margin: 0 0 5px 0;">John Doe</h2>
+        <p style="margin: 0 0 20px 0; opacity: 0.8;">Full Stack Developer</p>
+        <p style="font-size: 14px; line-height: 1.4; margin-bottom: 25px;">
+            Experienced developer specializing in web technologies and mobile applications.
+        </p>
+        <div>
+            <a href="mailto:john@example.com" class="contact-link">📧 Email</a>
+            <a href="tel:+1234567890" class="contact-link">📞 Call</a>
+            <a href="https://linkedin.com/in/johndoe" target="_blank" class="contact-link">💼 LinkedIn</a>
+        </div>
+    </div>
+
+    <a-scene 
+        id="scene"
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best;"
+        vr-mode-ui="enabled: false"
+        renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true;"
+        background="color: #000000; transparent: true;">
+        
+        <a-marker type="barcode" value="0" id="marker">
+            <!-- Simple 3D Card -->
+            <a-box position="0 0.5 0" 
+                   scale="2 0.05 1"
+                   color="#4CC3D9"
+                   shadow
+                   animation="property: rotation; to: 0 360 0; loop: true; dur: 10000;">
+            </a-box>
+            
+            <!-- Name -->
+            <a-text value="JOHN DOE"
+                    position="0 1 0"
+                    align="center"
+                    color="white"
+                    scale="2 2 2">
+            </a-text>
+            
+            <!-- Title -->
+            <a-text value="Full Stack Developer"
+                    position="0 0.7 0"
+                    align="center"
+                    color="#FFD700"
+                    scale="1 1 1">
+            </a-text>
+            
+            <!-- Contact -->
+            <a-text value="john@example.com"
+                    position="0 0.3 0"
+                    align="center"
+                    color="white"
+                    scale="0.8 0.8 0.8">
+            </a-text>
+            
+            <!-- Floating sphere -->
+            <a-sphere position="0 1.5 0" 
+                     scale="0.2 0.2 0.2" 
+                     color="#FF6B6B"
+                     animation="property: position; to: 0 2 0; direction: alternate; loop: true; dur: 3000;">
+            </a-sphere>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        let debug = document.getElementById('debug');
+        let status = document.getElementById('status');
+        let fallback = document.getElementById('fallback');
+        let scene = document.getElementById('scene');
+        
+        function log(message) {
+            console.log(message);
+            debug.innerHTML += message + '<br>';
+            debug.style.display = 'block';
+        }
+        
+        function updateStatus(message) {
+            status.innerHTML = `<div>📱 AR Business Card</div><div style="font-size: 14px; margin-top: 10px;">${message}</div>`;
+        }
+        
+        // Check device compatibility
+        function checkCompatibility() {
+            log('Checking compatibility...');
+            
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                log('Camera not supported');
+                showFallback();
+                return false;
+            }
+            
+            if (!window.AFRAME) {
+                log('A-Frame not loaded');
+                showFallback();
+                return false;
+            }
+            
+            log('Device compatible');
+            return true;
+        }
+        
+        function showFallback() {
+            updateStatus('AR not supported on this device');
+            fallback.style.display = 'block';
+            scene.style.display = 'none';
+        }
+        
+        // Initialize
+        window.addEventListener('load', function() {
+            log('Page loaded');
+            
+            if (!checkCompatibility()) {
+                return;
+            }
+            
+            updateStatus('Point camera at QR code or marker');
+            
+            // Request camera permission
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    log('Camera access granted');
+                    updateStatus('Camera active - point at marker');
+                    stream.getTracks().forEach(track => track.stop());
+                })
+                .catch(function(err) {
+                    log('Camera access denied: ' + err.message);
+                    showFallback();
+                });
+        });
+        
+        // Handle marker events
+        document.addEventListener('DOMContentLoaded', function() {
+            let marker = document.querySelector('#marker');
+            
+            if (marker) {
+                marker.addEventListener('markerFound', function() {
+                    log('Marker found!');
+                    updateStatus('🎉 AR Active! Move your phone around');
+                });
+                
+                marker.addEventListener('markerLost', function() {
+                    log('Marker lost');
+                    updateStatus('Point camera back at marker');
+                });
+            }
+        });
+        
+        // Fallback after 10 seconds
+        setTimeout(function() {
+            if (document.getElementById('status').innerHTML.includes('Allow camera')) {
+                log('Timeout - showing fallback');
+                showFallback();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

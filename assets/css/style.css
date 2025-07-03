@@ -73,7 +73,7 @@ button {
 /* Hero Section Styles */
 .hero-section {
   position: relative;
-  background: linear-gradient(to right, var(--primary-dark), var(--primary-color));
+  background: white;
   overflow: hidden;
   color: var(--white);
 }
