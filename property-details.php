@@ -1,7 +1,7 @@
 <?php
 /**
  * Property Details Page
- * Display detailed information about a specific property
+ * Display detailed information about a specific property;
  */
 require_once 'includes/config.php';
 require_once 'includes/database.php';
